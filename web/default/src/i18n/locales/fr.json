@@ -1479,6 +1479,7 @@
     "Enter display name": "Saisir le nom d'affichage",
     "Enter HTML code (e.g., <p>About us...</p>) or a URL (e.g., https://example.com) to embed as iframe": "Saisissez le code HTML (par exemple, <p>À propos de nous...</p>) ou une URL (par exemple, https://example.com) à intégrer en tant qu'iframe",
     "Enter Input price to calculate ratio": "Saisir le prix Input pour calculer le ratio",
+    "Enter invitation code (optional)": "Saisir le code d'invitation (facultatif)",
     "Enter JSON to override request headers": "Entrez du JSON pour remplacer les en-têtes",
     "Enter key, format: AccessKey|SecretAccessKey|Region": "Entrez la clé, format : AccessKey|SecretAccessKey|Region",
     "Enter key, one per line, format: AccessKey|SecretAccessKey|Region": "Entrez la clé, une par ligne, format : AccessKey|SecretAccessKey|Region",

@@ -1479,6 +1479,7 @@
     "Enter display name": "Введите отображаемое имя",
     "Enter HTML code (e.g., <p>About us...</p>) or a URL (e.g., https://example.com) to embed as iframe": "Введите HTML-код (например, <p>О нас...</p>) или URL (например, https://example.com) для встраивания в виде iframe",
     "Enter Input price to calculate ratio": "Введите цену Input для расчёта коэффициента",
+    "Enter invitation code (optional)": "Введите код приглашения (необязательно)",
     "Enter JSON to override request headers": "Введите JSON для переопределения заголовков",
     "Enter key, format: AccessKey|SecretAccessKey|Region": "Введите ключ, формат: AccessKey|SecretAccessKey|Region",
     "Enter key, one per line, format: AccessKey|SecretAccessKey|Region": "Введите ключ, по одному на строку, формат: AccessKey|SecretAccessKey|Region",

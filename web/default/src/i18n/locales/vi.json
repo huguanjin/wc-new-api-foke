@@ -1479,6 +1479,7 @@
     "Enter display name": "Nhập tên hiển thị",
     "Enter HTML code (e.g., <p>About us...</p>) or a URL (e.g., https://example.com) to embed as iframe": "Nhập mã HTML (ví dụ, <p>Về chúng tôi...</p>) hoặc một URL (ví dụ, https://example.com) để nhúng dưới dạng iframe",
     "Enter Input price to calculate ratio": "Nhập giá đầu vào để tính tỷ lệ",
+    "Enter invitation code (optional)": "Nhập mã mời (tùy chọn)",
     "Enter JSON to override request headers": "Nhập JSON để ghi đè header yêu cầu",
     "Enter key, format: AccessKey|SecretAccessKey|Region": "Nhập khóa, định dạng: AccessKey|SecretAccessKey|Region",
     "Enter key, one per line, format: AccessKey|SecretAccessKey|Region": "Nhập khóa, mỗi dòng một khóa, định dạng: AccessKey|SecretAccessKey|Region",

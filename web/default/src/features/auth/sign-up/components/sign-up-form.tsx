@@ -87,6 +87,14 @@ export function SignUpForm({
     validateTurnstile,
   })
 
+  const initialInviteCode = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    const affParam = new URLSearchParams(window.location.search)
+      .get('aff')
+      ?.trim()
+    return affParam || getAffiliateCode()
+  }, [])
+
   const form = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -94,6 +102,7 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      inviteCode: initialInviteCode,
     },
   })
 
@@ -157,7 +166,7 @@ export function SignUpForm({
         password: data.password,
         email: data.email || undefined,
         verification_code: verificationCode || undefined,
-        aff_code: getAffiliateCode(),
+        aff_code: data.inviteCode?.trim() || undefined,
         turnstile: turnstileToken,
       })
 
@@ -265,6 +274,24 @@ export function SignUpForm({
               <FormLabel>{t('Confirm password')}</FormLabel>
               <FormControl>
                 <PasswordInput placeholder={t('Confirm password')} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Invitation Code Field */}
+        <FormField
+          control={form.control}
+          name='inviteCode'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Invitation Code')}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={t('Enter invitation code (optional)')}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

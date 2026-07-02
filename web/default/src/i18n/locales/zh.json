@@ -1481,6 +1481,7 @@
     "Enter display name": "输入显示名称",
     "Enter HTML code (e.g., <p>About us...</p>) or a URL (e.g., https://example.com) to embed as iframe": "输入 HTML 代码（例如，<p>关于我们...</p>）或 URL（例如，https://example.com）以作为 iframe 嵌入",
     "Enter Input price to calculate ratio": "输入 Input 价格来计算比率",
+    "Enter invitation code (optional)": "输入邀请码（可选）",
     "Enter JSON to override request headers": "输入 JSON 以覆盖请求头",
     "Enter key, format: AccessKey|SecretAccessKey|Region": "请输入密钥，格式：AccessKey|SecretAccessKey|Region",
     "Enter key, one per line, format: AccessKey|SecretAccessKey|Region": "请输入密钥（每行一个），格式：AccessKey|SecretAccessKey|Region",
