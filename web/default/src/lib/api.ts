@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import axios, { type AxiosRequestConfig } from 'axios'
 import { t } from 'i18next'
 import { toast } from 'sonner'
+
 import { useAuthStore } from '@/stores/auth-store'
 
 declare module 'axios' {
@@ -101,13 +102,12 @@ api.interceptors.response.use(
     const status = error?.response?.status
 
     if (status === 401) {
-      try {
-        useAuthStore.getState().auth.reset()
-      } catch {
-        /* empty */
-      }
-
       if (!skip) {
+        try {
+          useAuthStore.getState().auth.reset()
+        } catch {
+          /* empty */
+        }
         toast.error(t('Session expired!'))
       }
     } else if (!skip) {

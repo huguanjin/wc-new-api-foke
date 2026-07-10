@@ -35,6 +35,8 @@ export const MESSAGE_STATUS = {
 // API endpoints
 export const API_ENDPOINTS = {
   CHAT_COMPLETIONS: '/pg/chat/completions',
+  IMAGE_GENERATIONS: '/pg/images/generations',
+  IMAGE_EDITS: '/pg/images/edits',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 } as const
@@ -94,6 +96,8 @@ export const MESSAGE_ACTION_LABELS = {
   COPY: 'Copy',
   COPIED: 'Copied!',
   REGENERATE: 'Regenerate',
+  SHOW_PREVIEW: 'Show preview',
+  SHOW_SOURCE: 'Show source',
   EDIT: 'Edit',
   DELETE: 'Delete',
   NO_CONTENT: 'No content to copy',

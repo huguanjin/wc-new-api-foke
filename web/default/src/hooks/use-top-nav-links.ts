@@ -18,9 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+
 import { useStatus } from '@/hooks/use-status'
+import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+import { useAuthStore } from '@/stores/auth-store'
 
 export type TopNavLink = {
   title: string
@@ -92,6 +93,11 @@ export function useTopNavLinks(): TopNavLink[] {
     } else {
       links.push({ title: t('Docs'), href: '/docs' })
     }
+  }
+
+  // Experience Hub (Photo playground)
+  if (modules?.photo !== false) {
+    links.push({ title: t('Experience Hub'), href: '/photo' })
   }
 
   // About
