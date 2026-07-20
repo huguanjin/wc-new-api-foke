@@ -44,6 +44,10 @@ const SITE_SECTIONS = [
           Footer: settings.Footer,
           About: settings.About,
           HomePageContent: settings.HomePageContent,
+          HomePageHeroContent: settings.HomePageHeroContent,
+          HomePageHeroI18nContent: settings.HomePageHeroI18nContent,
+          HomePageModelCarouselContent: settings.HomePageModelCarouselContent,
+          HomePageModelCarouselI18nContent: settings.HomePageModelCarouselI18nContent,
           ServerAddress: settings.ServerAddress,
           legal: {
             user_agreement: settings['legal.user_agreement'],
@@ -57,7 +61,10 @@ const SITE_SECTIONS = [
     id: 'notice',
     titleKey: 'System Notice',
     build: (settings: SiteSettings) => (
-      <NoticeSection defaultValue={settings.Notice ?? ''} />
+      <NoticeSection
+        defaultValue={settings.Notice ?? ''}
+        i18nDefaultValue={settings.NoticeI18nContent ?? ''}
+      />
     ),
   },
   {
