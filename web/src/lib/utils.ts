@@ -28,6 +28,17 @@ export function sleep(ms: number = 1000) {
 }
 
 /**
+ * Generates a UUID, using crypto.randomUUID() when available and
+ * falling back to a non-cryptographic identifier otherwise.
+ */
+export function randomUUID(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+/**
  * 清理 CSS 变量名，替换特殊字符
  * 用于将模型名称（如 gpt-3.5-turbo）转换为有效的 CSS 变量名（gpt-3-5-turbo）
  * @param name - 原始名称
