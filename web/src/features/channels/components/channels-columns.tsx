@@ -57,6 +57,7 @@ import { truncateText } from '@/lib/utils'
 
 import { getCodexUsage } from '../api'
 import { CHANNEL_STATUS_CONFIG, MODEL_FETCHABLE_TYPES } from '../constants'
+import { useChannelPermissions } from '../hooks/use-channel-permissions'
 import {
   formatRelativeTime,
   formatResponseTime,
@@ -190,6 +191,7 @@ function PriorityCell({ channel }: { channel: Channel }) {
 function TagPriorityCell({ channel }: { channel: TagRow }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const { canWrite } = useChannelPermissions()
   const priority = channel.priority
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingValue, setPendingValue] = useState<number | null>(null)
@@ -205,6 +207,7 @@ function TagPriorityCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={-999}
+        disabled={!canWrite}
       />
       <ConfirmDialog
         open={confirmOpen}
@@ -238,6 +241,7 @@ function ChannelFieldCell({
   min: number
 }) {
   const queryClient = useQueryClient()
+  const { canWrite } = useChannelPermissions()
   const fieldUpdateScheduler = useMemo(
     () =>
       createChannelFieldUpdateScheduler((nextValue) => {
@@ -254,6 +258,7 @@ function ChannelFieldCell({
       onChange={fieldUpdateScheduler.schedule}
       onCommit={fieldUpdateScheduler.flush}
       min={min}
+      disabled={!canWrite}
     />
   )
 }
@@ -279,6 +284,7 @@ function WeightCell({ channel }: { channel: Channel }) {
 function TagWeightCell({ channel }: { channel: TagRow }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const { canWrite } = useChannelPermissions()
   const weight = channel.weight
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingValue, setPendingValue] = useState<number | null>(null)
@@ -294,6 +300,7 @@ function TagWeightCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={0}
+        disabled={!canWrite}
       />
       <ConfirmDialog
         open={confirmOpen}

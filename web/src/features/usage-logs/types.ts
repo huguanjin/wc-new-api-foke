@@ -329,6 +329,7 @@ export interface GetLogsParams {
 export interface GetLogsResponse {
   success: boolean
   message?: string
+  code?: string
   data?: {
     items: UsageLog[] | MidjourneyLog[] | TaskLog[]
     total: number

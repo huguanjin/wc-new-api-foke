@@ -101,9 +101,31 @@ func AdminAuth() func(c *gin.Context) {
 	}
 }
 
+// ChannelStaffAuth allows channel admin, readonly admin, full admin, and root.
+func ChannelStaffAuth() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		authHelper(c, common.RoleChannelAdmin)
+	}
+}
+
 func RootAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleRootUser)
+	}
+}
+
+// DenyChannelAdmin blocks token/key management for channel admins.
+func DenyChannelAdmin() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if c.GetInt("role") == common.RoleChannelAdmin {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"code":    "AUTH_INSUFFICIENT_PRIVILEGE",
+				"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+			})
+			return
+		}
+		c.Next()
 	}
 }
 
@@ -228,6 +250,44 @@ func RequirePermission(permission authz.Permission) func(c *gin.Context) {
 		role := c.GetInt("role")
 		userID := c.GetInt("id")
 		if authz.Can(userID, role, permission) {
+			c.Next()
+			return
+		}
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+		})
+		c.Abort()
+	}
+}
+
+// RequireChannelCreate allows ChannelCreate or ChannelSensitiveWrite (legacy admin grant).
+func RequireChannelCreate() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		role := c.GetInt("role")
+		userID := c.GetInt("id")
+		if authz.Can(userID, role, authz.ChannelCreate) || authz.Can(userID, role, authz.ChannelSensitiveWrite) {
+			c.Next()
+			return
+		}
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+		})
+		c.Abort()
+	}
+}
+
+// RequireChannelEdit allows full ChannelWrite, or channel admins editing via ChannelCreate.
+func RequireChannelEdit() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		role := c.GetInt("role")
+		userID := c.GetInt("id")
+		if authz.Can(userID, role, authz.ChannelWrite) {
+			c.Next()
+			return
+		}
+		if role == common.RoleChannelAdmin && authz.Can(userID, role, authz.ChannelCreate) {
 			c.Next()
 			return
 		}

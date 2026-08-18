@@ -176,14 +176,32 @@ const (
 )
 
 const (
-	RoleGuestUser  = 0
-	RoleCommonUser = 1
-	RoleAdminUser  = 10
-	RoleRootUser   = 100
+	RoleGuestUser      = 0
+	RoleCommonUser     = 1
+	RoleChannelAdmin   = 5  // 渠道管理员：创建/测试自有渠道，不可建 Key
+	RoleReadonlyAdmin  = 8  // 只读管理员：只读本组渠道，可建 Key
+	RoleAdminUser      = 10
+	RoleRootUser       = 100
 )
 
 func IsValidateRole(role int) bool {
-	return role == RoleGuestUser || role == RoleCommonUser || role == RoleAdminUser || role == RoleRootUser
+	return role == RoleGuestUser ||
+		role == RoleCommonUser ||
+		role == RoleChannelAdmin ||
+		role == RoleReadonlyAdmin ||
+		role == RoleAdminUser ||
+		role == RoleRootUser
+}
+
+// IsChannelStaff reports whether the role may access channel staff APIs
+// (channel admin, readonly admin, full admin, or root).
+func IsChannelStaff(role int) bool {
+	return role >= RoleChannelAdmin
+}
+
+// IsFullAdmin reports whether the role is a traditional admin or root.
+func IsFullAdmin(role int) bool {
+	return role >= RoleAdminUser
 }
 
 var (

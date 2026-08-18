@@ -18,7 +18,7 @@ type permissionRoute struct {
 
 func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	channelRoute := apiRouter.Group("/channel")
-	channelRoute.Use(middleware.AdminAuth())
+	channelRoute.Use(middleware.ChannelStaffAuth())
 
 	channelRoute.POST("/:id/key",
 		middleware.RootAuth(),
@@ -29,8 +29,15 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	)
 
 	for _, route := range channelPermissionRoutes {
+		middlewareFn := middleware.RequirePermission(route.permission)
+		if route.method == http.MethodPut && route.path == "/" {
+			middlewareFn = middleware.RequireChannelEdit()
+		}
+		if route.method == http.MethodPost && route.path == "/" {
+			middlewareFn = middleware.RequireChannelCreate()
+		}
 		channelRoute.Handle(route.method, route.path,
-			middleware.RequirePermission(route.permission),
+			middlewareFn,
 			route.handler,
 		)
 	}
@@ -43,11 +50,11 @@ var channelPermissionRoutes = []permissionRoute{
 	{method: http.MethodGet, path: "/models_enabled", permission: authz.ChannelRead, handler: controller.EnabledListModels},
 	{method: http.MethodGet, path: "/ops", permission: authz.ChannelRead, handler: controller.GetChannelOps},
 	{method: http.MethodGet, path: "/:id", permission: authz.ChannelRead, handler: controller.GetChannel},
-	{method: http.MethodGet, path: "/test", permission: authz.ChannelOperate, handler: controller.TestAllChannels},
-	{method: http.MethodGet, path: "/test/:id", permission: authz.ChannelOperate, handler: controller.TestChannel},
+	{method: http.MethodGet, path: "/test", permission: authz.ChannelTest, handler: controller.TestAllChannels},
+	{method: http.MethodGet, path: "/test/:id", permission: authz.ChannelTest, handler: controller.TestChannel},
 	{method: http.MethodGet, path: "/update_balance", permission: authz.ChannelOperate, handler: controller.UpdateAllChannelsBalance},
 	{method: http.MethodGet, path: "/update_balance/:id", permission: authz.ChannelOperate, handler: controller.UpdateChannelBalance},
-	{method: http.MethodPost, path: "/", permission: authz.ChannelSensitiveWrite, handler: controller.AddChannel},
+	{method: http.MethodPost, path: "/", permission: authz.ChannelCreate, handler: controller.AddChannel},
 	{method: http.MethodPut, path: "/", permission: authz.ChannelWrite, handler: controller.UpdateChannel},
 	{method: http.MethodPost, path: "/status/batch", permission: authz.ChannelOperate, handler: controller.BatchUpdateChannelStatus},
 	{method: http.MethodPost, path: "/:id/status", permission: authz.ChannelOperate, handler: controller.UpdateChannelStatus},

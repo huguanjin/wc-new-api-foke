@@ -79,6 +79,8 @@ export const STATIC_I18N_KEYS = [
   // Roles
   'Super Admin',
   'Admin',
+  'Channel Admin',
+  'Readonly Admin',
   'User',
   'Guest',
 

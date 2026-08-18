@@ -225,14 +225,25 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 		"chat":       true,
 	}
 
-	// 控制台区域 - 所有用户都可以访问
-	defaultConfig["console"] = map[string]interface{}{
-		"enabled":    true,
-		"detail":     true,
-		"token":      true,
-		"log":        true,
-		"midjourney": true,
-		"task":       true,
+	// 控制台区域
+	if userRole == common.RoleChannelAdmin {
+		defaultConfig["console"] = map[string]interface{}{
+			"enabled":    true,
+			"detail":     true,
+			"token":      false,
+			"log":        true,
+			"midjourney": true,
+			"task":       true,
+		}
+	} else {
+		defaultConfig["console"] = map[string]interface{}{
+			"enabled":    true,
+			"detail":     true,
+			"token":      true,
+			"log":        true,
+			"midjourney": true,
+			"task":       true,
+		}
 	}
 
 	// 个人中心区域 - 所有用户都可以访问
@@ -244,17 +255,15 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 
 	// 管理员区域 - 根据角色决定
 	if userRole == common.RoleAdminUser {
-		// 管理员可以访问管理员区域，但不能访问系统设置
 		defaultConfig["admin"] = map[string]interface{}{
 			"enabled":    true,
 			"channel":    true,
 			"models":     true,
 			"redemption": true,
 			"user":       true,
-			"setting":    false, // 管理员不能访问系统设置
+			"setting":    false,
 		}
 	} else if userRole == common.RoleRootUser {
-		// 超级管理员可以访问所有功能
 		defaultConfig["admin"] = map[string]interface{}{
 			"enabled":    true,
 			"channel":    true,
@@ -263,8 +272,17 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 			"user":       true,
 			"setting":    true,
 		}
+	} else if userRole == common.RoleChannelAdmin || userRole == common.RoleReadonlyAdmin {
+		defaultConfig["admin"] = map[string]interface{}{
+			"enabled":      true,
+			"channel":      true,
+			"models":       false,
+			"redemption":   false,
+			"user":         false,
+			"setting":      false,
+			"subscription": false,
+		}
 	}
-	// 普通用户不包含admin区域
 
 	// 转换为JSON字符串
 	configBytes, err := common.Marshal(defaultConfig)
@@ -319,14 +337,6 @@ func CountUsersByEmail(email string) (int64, error) {
 	}
 	var count int64
 	err := emailQuery(DB, email).Count(&count).Error
-	return count, err
-}
-
-func CountUsersRegisteredBetween(startTime int64, endTime int64) (int64, error) {
-	var count int64
-	err := DB.Model(&User{}).
-		Where("created_at >= ? AND created_at <= ?", startTime, endTime).
-		Count(&count).Error
 	return count, err
 }
 
@@ -851,6 +861,9 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		"group":        newUser.Group,
 		"remark":       newUser.Remark,
 	}
+	if newUser.Role != 0 {
+		updates["role"] = newUser.Role
+	}
 	if updatePassword {
 		updates["password"] = newUser.Password
 	}
@@ -860,6 +873,9 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		return err
 	}
 	authChanged := (updatePassword && current.Password != newUser.Password) || current.Group != newUser.Group
+	if newUser.Role != 0 && current.Role != newUser.Role {
+		authChanged = true
+	}
 	if authChanged {
 		newUser.AuthVersion, err = IncrementUserAuthVersionWithTx(tx, user.Id)
 		if err != nil {

@@ -222,10 +222,14 @@ func ApiSuccess(c *gin.Context, data any) {
 // key is the i18n message key, args is optional template data
 func ApiErrorI18n(c *gin.Context, key string, args ...map[string]any) {
 	msg := TranslateMessage(c, key, args...)
-	c.JSON(http.StatusOK, gin.H{
+	payload := gin.H{
 		"success": false,
 		"message": msg,
-	})
+	}
+	if key == "auth.insufficient_privilege" {
+		payload["code"] = "AUTH_INSUFFICIENT_PRIVILEGE"
+	}
+	c.JSON(http.StatusOK, payload)
 }
 
 // ApiSuccessI18n returns a translated success message based on the user's language preference

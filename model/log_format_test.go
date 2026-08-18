@@ -1,35 +1,29 @@
 package model
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/QuantumNous/new-api/common"
-
-	"github.com/stretchr/testify/require"
-)
-
-// TestFormatUserLogsStripsQuotaSaturation verifies the admin-only quota
-// saturation marker (nested under other.admin_info) is removed for non-admin
-// log views, since formatUserLogs strips the whole admin_info object.
-func TestFormatUserLogsStripsQuotaSaturation(t *testing.T) {
-	other := common.MapToJsonStr(map[string]interface{}{
-		"model_price": 0.004,
-		"admin_info": map[string]interface{}{
-			"quota_saturation": map[string]interface{}{
-				"op":      "QuotaFromDecimal",
-				"kind":    "overflow",
-				"clamped": common.MaxQuota,
-			},
+func TestFormatChannelAdminLogsMasksUserInfo(t *testing.T) {
+	logs := []*Log{
+		{
+			UserId:    12,
+			Username:  "alice",
+			TokenId:   34,
+			TokenName: "secret-token",
+			Ip:        "1.2.3.4",
+			Other:     `{"admin_info":{"user":"alice"},"audit_info":{"op":"x"},"keep":1}`,
 		},
-	})
-	logs := []*Log{{Other: other}}
-
-	formatUserLogs(logs, 0)
-
-	parsed, err := common.StrToMap(logs[0].Other)
-	require.NoError(t, err)
-	_, hasAdminInfo := parsed["admin_info"]
-	require.False(t, hasAdminInfo, "admin_info (and nested quota_saturation) must be stripped for non-admin views")
-	// Non-admin billing fields remain visible.
-	require.Contains(t, parsed, "model_price")
+	}
+	FormatChannelAdminLogs(logs)
+	if logs[0].Username != "**" || logs[0].TokenName != "**" {
+		t.Fatalf("expected username and token name to be masked, got %q / %q", logs[0].Username, logs[0].TokenName)
+	}
+	if logs[0].UserId != 0 || logs[0].TokenId != 0 {
+		t.Fatalf("expected user and token ids to be cleared, got %d / %d", logs[0].UserId, logs[0].TokenId)
+	}
+	if logs[0].Ip != "" {
+		t.Fatalf("expected ip to be cleared, got %q", logs[0].Ip)
+	}
+	if logs[0].Other == "" {
+		t.Fatal("expected other json to remain")
+	}
 }

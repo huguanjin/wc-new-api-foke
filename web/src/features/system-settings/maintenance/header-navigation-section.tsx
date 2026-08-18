@@ -34,10 +34,9 @@ import { Switch } from '@/components/ui/switch'
 
 import {
   SettingsControlChildren,
-  SettingsControlGroup,
   SettingsForm,
-  SettingsFormGrid,
   SettingsSwitchContent,
+  SettingsControlGroup,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
@@ -56,12 +55,6 @@ const headerNavSchema = z.object({
   pricingRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
-  photoEnabled: z.boolean(),
-  photoRequireAuth: z.boolean(),
-  videoEnabled: z.boolean(),
-  videoRequireAuth: z.boolean(),
-  studioEnabled: z.boolean(),
-  studioRequireAuth: z.boolean(),
   docs: z.boolean(),
   about: z.boolean(),
 })
@@ -72,9 +65,6 @@ type HeaderNavigationSectionProps = {
   config: HeaderNavModulesConfig
   initialSerialized: string
 }
-
-const formLabelClassName = 'break-words'
-const formDescriptionClassName = 'leading-relaxed break-words'
 
 const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
   home:
@@ -99,30 +89,6 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.rankings?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.rankings.requireAuth
       : Boolean(config.rankings.requireAuth),
-  photoEnabled:
-    config.photo?.enabled === undefined
-      ? HEADER_NAV_DEFAULT.photo.enabled
-      : Boolean(config.photo.enabled),
-  photoRequireAuth:
-    config.photo?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.photo.requireAuth
-      : Boolean(config.photo.requireAuth),
-  videoEnabled:
-    config.video?.enabled === undefined
-      ? HEADER_NAV_DEFAULT.video.enabled
-      : Boolean(config.video.enabled),
-  videoRequireAuth:
-    config.video?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.video.requireAuth
-      : Boolean(config.video.requireAuth),
-  studioEnabled:
-    config.studio?.enabled === undefined
-      ? HEADER_NAV_DEFAULT.studio.enabled
-      : Boolean(config.studio.enabled),
-  studioRequireAuth:
-    config.studio?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.studio.requireAuth
-      : Boolean(config.studio.requireAuth),
   docs:
     config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
@@ -164,21 +130,6 @@ export function HeaderNavigationSection({
         ...(config.rankings ?? HEADER_NAV_DEFAULT.rankings),
         enabled: values.rankingsEnabled,
         requireAuth: values.rankingsRequireAuth,
-      },
-      photo: {
-        ...(config.photo ?? HEADER_NAV_DEFAULT.photo),
-        enabled: values.photoEnabled,
-        requireAuth: values.photoRequireAuth,
-      },
-      video: {
-        ...(config.video ?? HEADER_NAV_DEFAULT.video),
-        enabled: values.videoEnabled,
-        requireAuth: values.videoRequireAuth,
-      },
-      studio: {
-        ...(config.studio ?? HEADER_NAV_DEFAULT.studio),
-        enabled: values.studioEnabled,
-        requireAuth: values.studioRequireAuth,
       },
     }
 
@@ -227,12 +178,7 @@ export function HeaderNavigationSection({
   const accessModules: Array<{
     enabledKey: keyof HeaderNavFormValues
     requireAuthKey: keyof HeaderNavFormValues
-    requireAuthDependsOn:
-      | 'pricingEnabled'
-      | 'rankingsEnabled'
-      | 'photoEnabled'
-      | 'videoEnabled'
-      | 'studioEnabled'
+    requireAuthDependsOn: 'pricingEnabled' | 'rankingsEnabled'
     title: string
     description: string
     requireAuthTitle: string
@@ -260,45 +206,6 @@ export function HeaderNavigationSection({
         'Visitors must authenticate before accessing the rankings page.'
       ),
     },
-    {
-      enabledKey: 'photoEnabled',
-      requireAuthKey: 'photoRequireAuth',
-      requireAuthDependsOn: 'photoEnabled',
-      title: t('Experience Hub'),
-      description: t(
-        'Unified image generation playground for Gemini, GPT Image, and more.'
-      ),
-      requireAuthTitle: t('Require login to view Experience Hub'),
-      requireAuthDescription: t(
-        'Visitors must authenticate before accessing the Experience Hub.'
-      ),
-    },
-    {
-      enabledKey: 'videoEnabled',
-      requireAuthKey: 'videoRequireAuth',
-      requireAuthDependsOn: 'videoEnabled',
-      title: t('Quick Video'),
-      description: t(
-        'Frontend-only video generation playground with manual model input.'
-      ),
-      requireAuthTitle: t('Require login to view Quick Video'),
-      requireAuthDescription: t(
-        'Visitors must authenticate before accessing Quick Video.'
-      ),
-    },
-    {
-      enabledKey: 'studioEnabled',
-      requireAuthKey: 'studioRequireAuth',
-      requireAuthDependsOn: 'studioEnabled',
-      title: t('Studio'),
-      description: t(
-        'Explore leading image and video models. Pick one to start creating.'
-      ),
-      requireAuthTitle: t('Require login to view Studio'),
-      requireAuthDescription: t(
-        'Visitors must authenticate before accessing the Studio.'
-      ),
-    },
   ]
 
   return (
@@ -312,8 +219,7 @@ export function HeaderNavigationSection({
             resetLabel='Reset to default'
             saveLabel='Save navigation'
           />
-
-          <SettingsFormGrid>
+          <div className='grid gap-4 md:grid-cols-2'>
             {simpleModules.map((module) => (
               <FormField
                 key={module.key}
@@ -322,12 +228,8 @@ export function HeaderNavigationSection({
                 render={({ field }) => (
                   <SettingsSwitchItem>
                     <SettingsSwitchContent>
-                      <FormLabel className={formLabelClassName}>
-                        {module.title}
-                      </FormLabel>
-                      <FormDescription className={formDescriptionClassName}>
-                        {module.description}
-                      </FormDescription>
+                      <FormLabel>{module.title}</FormLabel>
+                      <FormDescription>{module.description}</FormDescription>
                     </SettingsSwitchContent>
                     <FormControl>
                       <Switch
@@ -340,9 +242,9 @@ export function HeaderNavigationSection({
                 )}
               />
             ))}
-          </SettingsFormGrid>
+          </div>
 
-          <SettingsFormGrid>
+          <div className='grid gap-4 lg:grid-cols-2'>
             {accessModules.map((module) => (
               <SettingsControlGroup key={module.enabledKey}>
                 <FormField
@@ -351,12 +253,8 @@ export function HeaderNavigationSection({
                   render={({ field }) => (
                     <SettingsSwitchItem>
                       <SettingsSwitchContent>
-                        <FormLabel className={formLabelClassName}>
-                          {module.title}
-                        </FormLabel>
-                        <FormDescription className={formDescriptionClassName}>
-                          {module.description}
-                        </FormDescription>
+                        <FormLabel>{module.title}</FormLabel>
+                        <FormDescription>{module.description}</FormDescription>
                       </SettingsSwitchContent>
                       <FormControl>
                         <Switch
@@ -376,10 +274,8 @@ export function HeaderNavigationSection({
                     <SettingsControlChildren>
                       <SettingsSwitchItem className='py-2'>
                         <SettingsSwitchContent>
-                          <FormLabel className={formLabelClassName}>
-                            {module.requireAuthTitle}
-                          </FormLabel>
-                          <FormDescription className={formDescriptionClassName}>
+                          <FormLabel>{module.requireAuthTitle}</FormLabel>
+                          <FormDescription>
                             {module.requireAuthDescription}
                           </FormDescription>
                         </SettingsSwitchContent>
@@ -397,7 +293,7 @@ export function HeaderNavigationSection({
                 />
               </SettingsControlGroup>
             ))}
-          </SettingsFormGrid>
+          </div>
         </SettingsForm>
       </Form>
     </SettingsSection>

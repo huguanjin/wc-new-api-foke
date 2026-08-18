@@ -74,7 +74,8 @@ interface UsageLogsTableProps {
 
 export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { t } = useTranslation()
-  const { isAdminView: isAdmin } = useLogsViewScope()
+  const { isAdminView, isTaskAdminView } = useLogsViewScope()
+  const isAdmin = logCategory === 'common' ? isAdminView : isTaskAdminView
   const isMobile = useMediaQuery('(max-width: 640px)')
   const searchParams = route.useSearch()
 
@@ -138,7 +139,9 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
       })
 
       if (!result?.success) {
-        toast.error(result?.message || t('Failed to load logs'))
+        if (result?.code !== 'AUTH_INSUFFICIENT_PRIVILEGE') {
+          toast.error(result?.message || t('Failed to load logs'))
+        }
         return DEFAULT_LOGS_DATA
       }
 

@@ -66,7 +66,6 @@ interface SubscriptionPlansCardProps {
   onAvailabilityChange?: (available: boolean) => void
   userQuota?: number
   onPurchaseSuccess?: () => void | Promise<void>
-  embedded?: boolean
 }
 
 function getEpayMethods(payMethods: PaymentMethod[] = []): PaymentMethod[] {
@@ -98,7 +97,6 @@ export function SubscriptionPlansCard({
   onAvailabilityChange,
   userQuota,
   onPurchaseSuccess,
-  embedded = false,
 }: SubscriptionPlansCardProps) {
   const { t } = useTranslation()
 
@@ -238,39 +236,37 @@ export function SubscriptionPlansCard({
   }
 
   if (loading) {
-    const loadingSkeleton = (
-      <div className='space-y-4'>
-        <Skeleton className='h-20 w-full' />
-        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className='h-48 w-full' />
-          ))}
-        </div>
-      </div>
-    )
-
-    if (embedded) {
-      return loadingSkeleton
-    }
-
     return (
       <Card data-card-hover='false' className='gap-0 overflow-hidden py-0'>
         <CardHeader className='border-b p-3 !pb-3 sm:p-5 sm:!pb-5'>
           <Skeleton className='h-6 w-32' />
         </CardHeader>
         <CardContent className='space-y-4 p-3 sm:p-5'>
-          {loadingSkeleton}
+          <Skeleton className='h-20 w-full' />
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+            {['first', 'second', 'third'].map((key) => (
+              <Skeleton key={key} className='h-48 w-full' />
+            ))}
+          </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (!embedded && plans.length === 0 && !hasAny) {
+  if (plans.length === 0 && !hasAny) {
     return null
   }
 
-  const plansContent = (
-    <div className='space-y-4 sm:space-y-5'>
+  return (
+    <>
+      <TitledCard
+        title={t('Subscription Plans')}
+        description={t('Subscribe to a plan for model access')}
+        icon={<Crown className='h-4 w-4' />}
+        iconTone='warning'
+        disableHoverEffect
+        contentClassName='space-y-4 sm:space-y-5'
+      >
         {/* My subscriptions & billing preference */}
         <div className='rounded-xl border p-3 sm:p-4'>
           <div className='flex flex-wrap items-center justify-between gap-2.5 sm:gap-3'>
@@ -635,24 +631,7 @@ export function SubscriptionPlansCard({
             {t('No plans available')}
           </p>
         )}
-    </div>
-  )
-
-  return (
-    <>
-      {embedded ? (
-        plansContent
-      ) : (
-        <TitledCard
-          title={t('Subscription Plans')}
-          description={t('Subscribe to a plan for model access')}
-          icon={<Crown className='h-4 w-4' />}
-          disableHoverEffect
-          contentClassName='space-y-4 sm:space-y-5'
-        >
-          {plansContent}
-        </TitledCard>
-      )}
+      </TitledCard>
 
       <SubscriptionPurchaseDialog
         open={purchaseOpen}

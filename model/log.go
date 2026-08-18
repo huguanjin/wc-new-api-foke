@@ -131,6 +131,35 @@ func formatUserLogs(logs []*Log, startIdx int) {
 	assignDisplayLogIds(logs, startIdx)
 }
 
+const maskedLogUserInfo = "**"
+
+func FormatChannelAdminLogs(logs []*Log) {
+	for i := range logs {
+		logs[i].Username = maskedLogUserInfo
+		logs[i].TokenName = maskedLogUserInfo
+		logs[i].UserId = 0
+		logs[i].TokenId = 0
+		logs[i].Ip = ""
+		var otherMap map[string]interface{}
+		otherMap, _ = common.StrToMap(logs[i].Other)
+		if otherMap != nil {
+			delete(otherMap, "admin_info")
+			delete(otherMap, "audit_info")
+		}
+		logs[i].Other = common.MapToJsonStr(otherMap)
+	}
+}
+
+func applyOwnedChannelFilter(tx *gorm.DB, column string, ownedChannelIDs []int) *gorm.DB {
+	if ownedChannelIDs == nil {
+		return tx
+	}
+	if len(ownedChannelIDs) == 0 {
+		return tx.Where("1 = 0")
+	}
+	return tx.Where(column+" IN ?", ownedChannelIDs)
+}
+
 func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	order := "id desc"
 	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
@@ -465,7 +494,7 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
 	}
 }
 
-func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
+func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, ownedChannelIDs []int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB
@@ -497,6 +526,7 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 	if channel != 0 {
 		tx = tx.Where("logs.channel_id = ?", channel)
 	}
+	tx = applyOwnedChannelFilter(tx, "logs.channel_id", ownedChannelIDs)
 	if group != "" {
 		tx = tx.Where("logs."+logGroupCol+" = ?", group)
 	}
@@ -615,7 +645,7 @@ type Stat struct {
 	Tpm   int `json:"tpm"`
 }
 
-func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
+func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, ownedChannelIDs []int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
 
 	// 为rpm和tpm创建单独的查询
@@ -647,6 +677,8 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 		tx = tx.Where("channel_id = ?", channel)
 		rpmTpmQuery = rpmTpmQuery.Where("channel_id = ?", channel)
 	}
+	tx = applyOwnedChannelFilter(tx, "channel_id", ownedChannelIDs)
+	rpmTpmQuery = applyOwnedChannelFilter(rpmTpmQuery, "channel_id", ownedChannelIDs)
 	if group != "" {
 		tx = tx.Where(logGroupCol+" = ?", group)
 		rpmTpmQuery = rpmTpmQuery.Where(logGroupCol+" = ?", group)

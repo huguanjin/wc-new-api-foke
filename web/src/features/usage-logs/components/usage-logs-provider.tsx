@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, type ReactNode } from 'react'
 
-import { useIsAdmin } from '@/hooks/use-admin'
+import { useIsAdmin, useIsChannelAdmin } from '@/hooks/use-admin'
 
 import type { ChannelAffinityInfo } from '../types'
 
@@ -93,12 +93,19 @@ export function useUsageLogsContext() {
  */
 export function useLogsViewScope() {
   const canManageScope = useIsAdmin()
+  const isChannelAdmin = useIsChannelAdmin()
   const { viewScope, setViewScope } = useUsageLogsContext()
+
+  const isFullAdminView = canManageScope && viewScope === 'all'
 
   return {
     canManageScope,
     viewScope,
     setViewScope,
-    isAdminView: canManageScope && viewScope === 'all',
+    // Common logs: channel admins query scoped /api/log/; full admins query all.
+    isAdminView: isChannelAdmin || isFullAdminView,
+    // Drawing/task admin endpoints require role >= 10; channel admins must use /self.
+    isTaskAdminView: isFullAdminView,
+    hideUserFilters: isChannelAdmin,
   }
 }

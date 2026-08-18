@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { handleEnableTagChannels, handleDisableTagChannels } from '../lib'
+import { useChannelPermissions } from '../hooks/use-channel-permissions'
 import type { Channel } from '../types'
 import { useChannels } from './channels-provider'
 
@@ -47,6 +48,7 @@ export function DataTableTagRowActions({ row }: DataTableTagRowActionsProps) {
   const tag = row.original.tag
   const { setOpen, setCurrentTag } = useChannels()
   const queryClient = useQueryClient()
+  const { canOperate, canWrite } = useChannelPermissions()
 
   if (!tag) return null
 
@@ -70,6 +72,7 @@ export function DataTableTagRowActions({ row }: DataTableTagRowActionsProps) {
 
   return (
     <div className='-ml-1.5 flex items-center gap-1'>
+      {canWrite && (
       <Tooltip>
         <TooltipTrigger
           render={
@@ -85,34 +88,40 @@ export function DataTableTagRowActions({ row }: DataTableTagRowActionsProps) {
         </TooltipTrigger>
         <TooltipContent>{t('Edit Tag')}</TooltipContent>
       </Tooltip>
+      )}
 
+      {(canWrite || canOperate) && (
       <DataTableRowActionMenu ariaLabel={t('Open menu')}>
-        {/* Batch Edit */}
+        {canWrite && (
         <DropdownMenuItem onClick={handleBatchEdit}>
           {t('Batch Edit')}
           <DropdownMenuShortcut>
             <Pencil size={16} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
+        )}
 
-        <DropdownMenuSeparator />
+        {canWrite && canOperate && <DropdownMenuSeparator />}
 
-        {/* Enable All */}
+        {canOperate && (
         <DropdownMenuItem onClick={handleEnableAll}>
           {t('Enable All')}
           <DropdownMenuShortcut>
             <Power size={16} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
+        )}
 
-        {/* Disable All */}
+        {canOperate && (
         <DropdownMenuItem onClick={handleDisableAll}>
           {t('Disable All')}
           <DropdownMenuShortcut>
             <PowerOff size={16} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
+        )}
       </DataTableRowActionMenu>
+      )}
     </div>
   )
 }

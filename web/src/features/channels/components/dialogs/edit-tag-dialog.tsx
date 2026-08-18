@@ -40,6 +40,8 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 
+import { useIsAdmin } from '@/hooks/use-admin'
+
 import {
   editTagChannels,
   getTagModels,
@@ -59,6 +61,7 @@ export function EditTagDialog({ open, onOpenChange }: EditTagDialogProps) {
   const { t } = useTranslation()
   const { currentTag } = useChannels()
   const queryClient = useQueryClient()
+  const canFetchGroups = useIsAdmin()
 
   // Form state
   const [newTag, setNewTag] = useState('')
@@ -86,7 +89,7 @@ export function EditTagDialog({ open, onOpenChange }: EditTagDialogProps) {
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
     queryFn: getGroups,
-    enabled: open,
+    enabled: open && canFetchGroups,
   })
 
   const availableModels =

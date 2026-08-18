@@ -16,319 +16,228 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { CherryStudio } from '@lobehub/icons'
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowRight, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { useStatus } from '@/hooks/use-status'
 
-import { getHomePageHeroContent } from '../../api'
-import {
-  DEFAULT_HERO_CONTENT,
-  DEFAULT_HERO_I18N_CONTENT,
-} from '../../hero-defaults'
-import {
-  getLocalizedText,
-  isChineseLanguage,
-  parseSlidesConfig,
-  resolveHomePageLocalizedContent,
-} from '../../lib/home-content'
-import type { HomePageHeroContentConfig } from '../../types'
+import { HeroTerminalDemo } from '../hero-terminal-demo'
 
 interface HeroProps {
   className?: string
   isAuthenticated?: boolean
 }
 
-type HeroSlide = {
-  src: string
-  title: string
-  eyebrow: string
-  desc: string
-  model: string
-  tone: string
-}
-
-const HERO_SLIDES: HeroSlide[] = [
-  {
-    src: '/landing/photo/impasto-test-28-war-goddess-poetic-beauty.png',
-    title: 'Unified access to next-gen AI image models',
-    eyebrow: 'Image Gateway',
-    desc: 'Aggregate Gemini, GPT Image, and more image models through one compatible endpoint to build stable, observable, cost-efficient generation services faster.',
-    model: 'gemini-3.1-flash-image-preview',
-    tone: 'from-amber-300 via-yellow-400 to-orange-500',
-  },
-  {
-    src: '/landing/home-page/home_simple.png',
-    title: 'Ship high-quality image generation faster',
-    eyebrow: 'GPT Image Ready',
-    desc: 'Cover production scenarios like text-to-image, image editing, and batch generation with key management, request logs, and stable routing built in.',
-    model: 'gpt-image-2',
-    tone: 'from-emerald-300 via-lime-300 to-teal-400',
-  },
-  {
-    src: '/landing/home-page/home_horse.png',
-    title: 'High-concurrency visual APIs for business',
-    eyebrow: 'Gemini Flash Image',
-    desc: 'Automatically select available channels to reduce failures caused by provider volatility, so teams can focus on product experience instead of model integration.',
-    model: 'gemini-3-pro-image-preview',
-    tone: 'from-cyan-300 via-sky-400 to-blue-500',
-  },
-]
-
-const ANNOUNCEMENT_BUTTON_COLORS = ['#F5C518', '#F5C518', '#F5C518']
-
-function mergeHeroSlides(
-  config: HomePageHeroContentConfig | null,
-  language: string,
-  translate: (key: string) => string
-): HeroSlide[] {
-  return HERO_SLIDES.map((defaultSlide, index) => {
-    const defaultTitle = translate(defaultSlide.title)
-    const defaultDesc = translate(defaultSlide.desc)
-    const defaultEyebrow = translate(defaultSlide.eyebrow)
-    const customSlide = config?.slides?.[index]
-
-    if (!customSlide) {
-      return {
-        ...defaultSlide,
-        title: defaultTitle,
-        desc: defaultDesc,
-        eyebrow: defaultEyebrow,
-      }
-    }
-
-    return {
-      ...defaultSlide,
-      title: getLocalizedText(customSlide.title, language, defaultTitle),
-      desc: getLocalizedText(customSlide.desc, language, defaultDesc),
-      eyebrow: defaultEyebrow,
-      model: customSlide.model || defaultSlide.model,
-    }
-  })
-}
-
-function getDisplayModelName(model: string): string {
-  if (
-    model === 'gemini-3-pro-image-preview' ||
-    model === 'gemini-3.1-flash-image-preview'
-  ) {
-    return model.replace(/-preview$/i, '')
-  }
-
-  return model
-}
+// Stylized three-dots indicator representing "More"
+const MoreIcon = () => (
+  <svg
+    className='text-muted-foreground/60 group-hover:text-foreground size-6 shrink-0 transition-colors'
+    viewBox='0 0 24 24'
+    fill='none'
+    xmlns='http://www.w3.org/2000/svg'
+  >
+    <circle cx='6' cy='12' r='2' fill='currentColor' />
+    <circle cx='12' cy='12' r='2' fill='currentColor' />
+    <circle cx='18' cy='12' r='2' fill='currentColor' />
+  </svg>
+)
 
 export function Hero(props: HeroProps) {
-  const { i18n, t } = useTranslation()
-  const [activeSlide, setActiveSlide] = useState(0)
-  const [slideCycle, setSlideCycle] = useState(0)
-  const [slideProgressStarted, setSlideProgressStarted] = useState(false)
-  const [slides, setSlides] = useState<HeroSlide[]>(() =>
-    mergeHeroSlides(null, i18n.language, t)
-  )
+  const { t } = useTranslation()
+  const { status } = useStatus()
+  const docsUrl =
+    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
 
-  useEffect(() => {
-    let mounted = true
-
-    async function loadHeroContent() {
-      const applySlides = (content?: string) => {
-        if (!mounted) return
-        const config = parseSlidesConfig<HomePageHeroContentConfig>(content)
-        setSlides(mergeHeroSlides(config, i18n.language, t))
-      }
-
-      try {
-        const response = await getHomePageHeroContent()
-        if (!mounted) return
-
-        const savedContent = resolveHomePageLocalizedContent(
-          i18n.language,
-          response.data?.content,
-          response.data?.i18nContent
-        )
-        const content =
-          savedContent ??
-          (isChineseLanguage(i18n.language)
-            ? DEFAULT_HERO_CONTENT
-            : DEFAULT_HERO_I18N_CONTENT)
-        applySlides(content)
-      } catch {
-        applySlides(
-          isChineseLanguage(i18n.language)
-            ? DEFAULT_HERO_CONTENT
-            : DEFAULT_HERO_I18N_CONTENT
-        )
-      }
+  const renderDocsButton = () => {
+    const isExternal = docsUrl.startsWith('http')
+    if (isExternal) {
+      return (
+        <Button
+          variant='outline'
+          className='group border-border/50 hover:border-border hover:bg-muted/50 inline-flex h-11 items-center gap-1.5 rounded-lg px-5 text-sm font-medium'
+          render={
+            <a href={docsUrl} target='_blank' rel='noopener noreferrer' />
+          }
+        >
+          <BookOpen className='text-muted-foreground/80 group-hover:text-foreground size-4 transition-colors duration-200' />
+          <span>{t('Docs')}</span>
+        </Button>
+      )
     }
-
-    loadHeroContent()
-
-    return () => {
-      mounted = false
-    }
-  }, [i18n.language, t])
-
-  useEffect(() => {
-    const color = ANNOUNCEMENT_BUTTON_COLORS[activeSlide] || ANNOUNCEMENT_BUTTON_COLORS[0]
-    document.documentElement.style.setProperty('--announcement-primary', color)
-  }, [activeSlide])
-
-  useEffect(() => {
-    setActiveSlide((current) => Math.min(current, slides.length - 1))
-  }, [slides.length])
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) return
-
-    setSlideProgressStarted(false)
-    const startTimer = window.setTimeout(() => setSlideProgressStarted(true), 50)
-    const switchTimer = window.setTimeout(() => {
-      setSlideProgressStarted(false)
-      setActiveSlide((current) => (current + 1) % slides.length)
-      setSlideCycle((current) => current + 1)
-    }, 6000)
-
-    return () => {
-      window.clearTimeout(startTimer)
-      window.clearTimeout(switchTimer)
-    }
-  }, [activeSlide, slideCycle, slides.length])
-
-  const slide = slides[activeSlide] ?? slides[0] ?? HERO_SLIDES[0]
+    return (
+      <Button
+        variant='outline'
+        className='group border-border/50 hover:border-border hover:bg-muted/50 inline-flex h-11 items-center gap-1.5 rounded-lg px-5 text-sm font-medium'
+        render={<Link to={docsUrl} />}
+      >
+        <BookOpen className='text-muted-foreground/80 group-hover:text-foreground size-4 transition-colors duration-200' />
+        <span>{t('Docs')}</span>
+      </Button>
+    )
+  }
 
   return (
-    <section
-      className={`hero-adaptive relative z-10 isolate min-h-svh overflow-hidden px-4 pt-24 pb-14 sm:px-6 sm:pt-26 sm:pb-16 md:pt-30 md:pb-18 lg:px-8 lg:pt-32 lg:pb-20 xl:pt-36 xl:pb-24 ${props.className ?? ''}`}
-    >
+    <section className='relative z-10 overflow-hidden px-6 pt-24 pb-16 md:pt-32 md:pb-24 lg:pt-36 lg:pb-28'>
+      {/* Radial gradient background */}
       <div
         aria-hidden
-        className='absolute inset-0 -z-30 min-h-full'
-      >
-        {HERO_SLIDES.map((item, index) => (
-          <img
-            key={item.src}
-            src={item.src}
-            alt=''
-            className={`absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-out ${
-              index === activeSlide ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-        ))}
-      </div>
-      <div
-        aria-hidden
-        className='absolute inset-0 -z-10 min-h-full bg-[linear-gradient(to_right,rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_70%_55%_at_50%_35%,black_20%,transparent_100%)] bg-[size:4rem_4rem] opacity-[0.12]'
+        className='pointer-events-none absolute inset-0 -z-10 opacity-25 dark:opacity-[0.12]'
+        style={{
+          background: [
+            'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0.15 200 / 60%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 40% 35% at 40% 80%, oklch(0.70 0.12 280 / 40%) 0%, transparent 70%)',
+          ].join(', '),
+        }}
       />
+      {/* Grid pattern */}
       <div
         aria-hidden
-        className='absolute inset-0 -z-20 min-h-full bg-[linear-gradient(90deg,rgba(2,6,23,0.18)_0%,rgba(161,164,176,0.18)_42%,rgba(2,6,23,0.18)_70%,rgba(2,6,23,0.18)_100%)]'
+        className='absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,black_20%,transparent_100%)] bg-[size:4rem_4rem] opacity-[0.08]'
       />
 
-      <div className='hero-adaptive__grid mx-auto grid min-h-[calc(100svh-9.5rem)] max-w-7xl items-center gap-8 md:min-h-[calc(100svh-11rem)] md:gap-9 lg:gap-10 xl:min-h-[calc(100svh-15rem)] xl:gap-16'>
-        <div className='hero-adaptive__content max-w-3xl translate-y-0 text-white [text-rendering:optimizeLegibility] [-webkit-font-smoothing:antialiased] [font-synthesis-weight:none] lg:translate-y-28'>
+      <div className='mx-auto grid max-w-6xl grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-8'>
+        {/* Left Column: Title, description, action buttons and application support */}
+        <div className='flex flex-col items-start text-left lg:col-span-6'>
+          {/* Top Pill Badge */}
           <div
-            key={`eyebrow-${activeSlide}`}
-            className='hero-adaptive__eyebrow landing-animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/25 backdrop-blur-md'
+            className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-medium text-blue-600 opacity-0 shadow-xs dark:border-blue-400/20 dark:bg-blue-400/5 dark:text-blue-400'
             style={{ animationDelay: '0ms' }}
           >
-            <Sparkles className='size-4 text-yellow-300' />
-            {slide.eyebrow}
+            <span className='relative flex size-1.5'>
+              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
+              <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
+            </span>
+            <span>{t('AI Application Infrastructure Foundation')}</span>
           </div>
 
           <h1
-            key={`title-${activeSlide}`}
-            className='hero-adaptive__title landing-animate-fade-up max-w-[10.5ch] pb-[0.1em] text-[clamp(2.5rem,6vw,5.75rem)] leading-[1.08] font-extrabold tracking-tight text-balance text-[#ececec] drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] lg:max-w-[11ch] xl:max-w-none xl:text-[clamp(2.6rem,6.8vw,5.75rem)]'
-            style={{ animationDelay: '80ms' }}
+            className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
+            style={{ animationDelay: '60ms' }}
           >
-            {slide.title}
+            {t('Unified API Gateway for')}
+            <br />
+            <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
+              {t('Vast Range of AI Models')}
+            </span>
           </h1>
-
           <p
-            key={`desc-${activeSlide}`}
-            className='hero-adaptive__desc landing-animate-fade-up mt-6 max-w-2xl text-base leading-8 font-medium text-[#cccccc] opacity-0 drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)] md:text-xl'
-            style={{ animationDelay: '160ms' }}
+            className='landing-animate-fade-up text-muted-foreground/80 mt-5 max-w-xl text-base leading-relaxed opacity-0 md:text-[15px]'
+            style={{ animationDelay: '120ms' }}
           >
-            {slide.desc}
+            {t(
+              'Access a vast selection of models via a standard, unified API protocol. Power AI applications, manage digital assets, and connect the Future.'
+            )}
           </p>
 
           <div
-            className='hero-adaptive__cta landing-animate-fade-up mt-8 flex flex-col gap-3 opacity-0 sm:flex-row'
-            style={{ animationDelay: '240ms' }}
+            className='landing-animate-fade-up mt-8 flex flex-wrap items-center gap-3 opacity-0'
+            style={{ animationDelay: '180ms' }}
           >
             {props.isAuthenticated ? (
-              <Button
-                className='group relative overflow-hidden rounded-full bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-400 px-7 text-slate-950 shadow-[0_12px_30px_-12px_rgba(250,204,21,0.85)] ring-1 ring-white/30 transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:skew-x-[-20deg] before:bg-white/45 before:opacity-0 before:transition-all before:duration-500 hover:-translate-y-0.5 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-300 hover:shadow-[0_18px_42px_-16px_rgba(250,204,21,0.95)] hover:before:left-[120%] hover:before:opacity-100 focus-visible:ring-yellow-200/70 active:translate-y-0'
-                render={<Link to='/dashboard' />}
-              >
-                <span className='relative z-10'>{t('Go to Dashboard')}</span>
-                <ArrowRight className='relative z-10 ml-1 size-4 transition-transform duration-200 group-hover:translate-x-1' />
-              </Button>
+              <>
+                <Button
+                  className='group h-11 rounded-lg px-5 text-sm font-medium'
+                  render={<Link to='/dashboard' />}
+                >
+                  {t('Go to Dashboard')}
+                  <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+                </Button>
+                {renderDocsButton()}
+              </>
             ) : (
               <>
                 <Button
-                  className='group relative overflow-hidden rounded-full bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-400 px-7 text-slate-950 shadow-[0_12px_30px_-12px_rgba(250,204,21,0.85)] ring-1 ring-white/30 transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:skew-x-[-20deg] before:bg-white/45 before:opacity-0 before:transition-all before:duration-500 hover:-translate-y-0.5 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-300 hover:shadow-[0_18px_42px_-16px_rgba(250,204,21,0.95)] hover:before:left-[120%] hover:before:opacity-100 focus-visible:ring-yellow-200/70 active:translate-y-0'
-                  render={<Link to='/dashboard' />}
+                  className='group h-11 rounded-lg px-5 text-sm font-medium'
+                  render={<Link to='/sign-up' />}
                 >
-                  <span className='relative z-10'>{t('Go to Dashboard')}</span>
-                  <ArrowRight className='relative z-10 ml-1 size-4 transition-transform duration-200 group-hover:translate-x-1' />
+                  {t('Get Started')}
+                  <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 <Button
                   variant='outline'
-                  className='rounded-full border-white/20 bg-white/10 px-7 text-white shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/20 hover:text-white active:translate-y-0'
+                  className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/pricing' />}
                 >
-                  {t('Explore model pricing')}
+                  {t('View Pricing')}
                 </Button>
+                {renderDocsButton()}
               </>
             )}
           </div>
 
+          {/* Supported Apps (参考图二样式，进行卡片化和信息扩充设计，增加视觉高度) */}
           <div
-            className='hero-adaptive__slide-cards landing-animate-fade-up mt-20 grid w-full max-w-3xl grid-cols-3 gap-3 opacity-0 sm:gap-4 md:mt-24 lg:mt-24'
-            style={{ animationDelay: '400ms' }}
+            className='landing-animate-fade-up mt-10 w-full max-w-xl opacity-0'
+            style={{ animationDelay: '240ms' }}
           >
-            {slides.map((item, index) => (
-              <Button
-                key={item.src}
-                variant='ghost'
-                aria-label={t('Switch to hero slide {{index}}', {
-                  index: index + 1,
-                })}
-                aria-current={index === activeSlide}
-                onClick={() => {
-                  setSlideProgressStarted(false)
-                  setActiveSlide(index)
-                  setSlideCycle((current) => current + 1)
-                }}
-                className={`relative h-auto w-full min-w-0 items-center justify-start gap-2 overflow-hidden rounded-none border bg-black/35 px-1 py-0.5 backdrop-blur-md transition-colors hover:bg-black/45 sm:gap-2.5 sm:px-1.5 sm:py-1 ${
-                  index === activeSlide
-                    ? 'border-yellow-300/70 bg-yellow-300/15 hover:bg-yellow-300/20'
-                    : 'border-white/15'
-                }`}
-              >
-                {index === activeSlide && (
-                  <span
-                    aria-hidden
-                    className={`absolute inset-y-0 left-0 z-0 bg-white/55 transition-[width] duration-[5950ms] ease-linear ${
-                      slideProgressStarted ? 'w-full' : 'w-0'
-                    }`}
-                  />
+            <div className='mb-4 flex flex-col gap-1'>
+              <span className='text-muted-foreground/50 text-[10px] font-bold tracking-[0.15em] uppercase'>
+                {t('Supported Applications')}
+              </span>
+              <p className='text-muted-foreground/60 text-xs leading-relaxed'>
+                {t(
+                  'Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.'
                 )}
+              </p>
+            </div>
+            <div className='flex flex-wrap items-center gap-3'>
+              {/* Cherry Studio */}
+              <a
+                href='https://cherry-ai.com'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
+              >
+                <CherryStudio.Color size={24} className='shrink-0' />
+                <span>Cherry Studio</span>
+              </a>
+
+              {/* CC Switch */}
+              <a
+                href='https://ccswitch.io'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
+              >
                 <img
-                  src={item.src}
-                  alt=''
-                  draggable={false}
-                  className='relative z-10 h-12 w-20 shrink-0 rounded-none object-cover sm:h-14 sm:w-24'
+                  src='https://ccswitch.io/favicon.png'
+                  alt='CC Switch'
+                  className='size-6 shrink-0 rounded-md object-contain'
+                  onError={(e) => {
+                    // Fallback to a styled text avatar if the remote favicon fails to load in sandbox or local environments
+                    e.currentTarget.style.display = 'none'
+                    const fallback = e.currentTarget.nextSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'flex'
+                  }}
                 />
-                <span className='relative z-10 min-w-0 truncate font-mono text-xs font-medium text-white capitalize sm:max-w-[12rem]'>
-                  {getDisplayModelName(item.model)}
+                <span
+                  style={{ display: 'none' }}
+                  className='size-6 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400'
+                >
+                  CC
                 </span>
-              </Button>
-            ))}
+                <span>CC Switch</span>
+              </a>
+
+              {/* "更多" */}
+              <div className='group border-border/40 bg-muted/15 text-foreground/55 hover:border-border hover:bg-muted/30 hover:text-foreground flex cursor-default items-center gap-2.5 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+                <MoreIcon />
+                <span>{t('More Apps')}</span>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Right Column: Hero Terminal API Demo */}
+        <div
+          className='landing-animate-fade-up flex w-full justify-center opacity-0 lg:col-span-6'
+          style={{ animationDelay: '320ms' }}
+        >
+          <HeroTerminalDemo className='mt-8 lg:mt-0' />
         </div>
       </div>
     </section>

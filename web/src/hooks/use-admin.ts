@@ -16,16 +16,29 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ROLE } from '@/lib/roles'
-/**
- * Hook for checking admin privileges
- */
+import { canManageApiKeys, ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 /**
- * Check if current user has admin privileges
+ * Check if current user has full admin privileges (admin or root).
  */
 export function useIsAdmin(): boolean {
   const { user } = useAuthStore((state) => state.auth)
   return (user?.role ?? 0) >= ROLE.ADMIN
+}
+
+/**
+ * Check if current user is a channel admin (owned-channel staff, not full admin).
+ */
+export function useIsChannelAdmin(): boolean {
+  const { user } = useAuthStore((state) => state.auth)
+  return user?.role === ROLE.CHANNEL_ADMIN
+}
+
+/**
+ * Channel admins are blocked from /api/token; other signed-in roles may manage keys.
+ */
+export function useCanManageApiKeys(): boolean {
+  const role = useAuthStore((state) => state.auth.user?.role)
+  return canManageApiKeys(role)
 }
