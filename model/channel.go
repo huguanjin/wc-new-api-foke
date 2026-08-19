@@ -50,8 +50,6 @@ type Channel struct {
 	ParamOverride     *string `json:"param_override" gorm:"type:text"`
 	HeaderOverride    *string `json:"header_override" gorm:"type:text"`
 	Remark            *string `json:"remark" gorm:"type:varchar(255)" validate:"max=255"`
-	// CreatorId records who created the channel (used for channel-admin scoping).
-	CreatorId int `json:"creator_id" gorm:"index;default:0"`
 	// add after v0.8.5
 	ChannelInfo ChannelInfo `json:"channel_info" gorm:"type:json"`
 
@@ -419,12 +417,6 @@ func SearchChannels(keyword string, group string, model string, idSort bool, sor
 		return nil, err
 	}
 	return channels, nil
-}
-
-func GetChannelIdsByCreator(creatorId int) ([]int, error) {
-	var ids []int
-	err := DB.Model(&Channel{}).Where("creator_id = ?", creatorId).Pluck("id", &ids).Error
-	return ids, err
 }
 
 func GetChannelById(id int, selectAll bool) (*Channel, error) {

@@ -52,7 +52,7 @@ import type { ApiKey } from '@/features/keys/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getUserModels } from '@/lib/api'
 import { MOTION_TRANSITION } from '@/lib/motion'
-import { canManageApiKeys, ROLE } from '@/lib/roles'
+import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -64,6 +64,7 @@ import { AnnouncementsPanel } from './announcements-panel'
 import { ApiInfoPanel } from './api-info-panel'
 import { FAQPanel } from './faq-panel'
 import { PerformanceHealthPanel } from './performance-health-panel'
+import { PromoBanner } from './promo-banner'
 import { SummaryCards } from './summary-cards'
 import { UptimePanel } from './uptime-panel'
 
@@ -473,7 +474,6 @@ export function OverviewDashboard() {
   const remainQuota = Number(user?.quota ?? 0)
   const usedQuota = Number(user?.used_quota ?? 0)
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
-  const canUseApiKeys = canManageApiKeys(user?.role)
 
   const apiKeysQuery = useQuery({
     queryKey: ['dashboard', 'overview', 'api-keys'],
@@ -481,7 +481,6 @@ export function OverviewDashboard() {
       const result = await getApiKeys({ p: 1, size: 10 })
       return result.success ? (result.data?.items ?? []) : []
     },
-    enabled: canUseApiKeys,
     staleTime: 60 * 1000,
   })
 
@@ -499,18 +498,15 @@ export function OverviewDashboard() {
     [apiKeysQuery.data]
   )
 
-  const startSteps = useMemo<StartStep[]>(() => {
-    const steps: StartStep[] = []
-    if (canUseApiKeys) {
-      steps.push({
+  const startSteps = useMemo<StartStep[]>(
+    () => [
+      {
         title: t('Create API Key'),
         description: t('Create a key for your app or service'),
         to: '/keys',
         icon: KeyRound,
         completed: Boolean(preferredKey),
-      })
-    }
-    steps.push(
+      },
       {
         title: t('Add credits'),
         description: t('Keep enough balance before production traffic'),
@@ -524,10 +520,10 @@ export function OverviewDashboard() {
         to: '/playground',
         icon: TerminalSquare,
         completed: requestCount > 0,
-      }
-    )
-    return steps
-  }, [canUseApiKeys, preferredKey, remainQuota, requestCount, t, usedQuota])
+      },
+    ],
+    [preferredKey, remainQuota, requestCount, t, usedQuota]
+  )
 
   const quickActions = useMemo<QuickAction[]>(
     () => [
@@ -561,15 +557,8 @@ export function OverviewDashboard() {
   )
 
   const visibleQuickActions = useMemo(
-    () =>
-      quickActions.filter((action) => {
-        if (action.to === '/keys' && !canUseApiKeys) return false
-        if (action.adminOnly) {
-          return Boolean(user?.role && user.role >= ROLE.CHANNEL_ADMIN)
-        }
-        return true
-      }),
-    [canUseApiKeys, quickActions, user?.role]
+    () => quickActions.filter((action) => !action.adminOnly || isAdmin),
+    [isAdmin, quickActions]
   )
 
   const heroSignals = useMemo<HeroSignal[]>(
@@ -616,8 +605,7 @@ export function OverviewDashboard() {
 
   const completedStepCount = startSteps.filter((step) => step.completed).length
   const setupComplete = completedStepCount === startSteps.length
-  const setupStatusReady =
-    Boolean(user) && (canUseApiKeys ? apiKeysQuery.isFetched : true)
+  const setupStatusReady = apiKeysQuery.isFetched && Boolean(user)
   const setupGuideExpanded =
     manualSetupGuideExpanded ?? (setupStatusReady && !setupComplete)
   const showLeftContentPanels =
@@ -761,6 +749,8 @@ export function OverviewDashboard() {
           </CardStaggerItem>
         </CardStaggerContainer>
       )}
+
+      <PromoBanner />
 
       <SummaryCards />
 

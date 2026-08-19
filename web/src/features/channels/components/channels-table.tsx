@@ -43,7 +43,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks'
-import { useIsAdmin } from '@/hooks/use-admin'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
@@ -62,7 +61,6 @@ import {
   getChannelTypeLabel,
 } from '../lib'
 import type { Channel, ChannelSortBy } from '../types'
-import { useChannelPermissions } from '../hooks/use-channel-permissions'
 import { ChannelCard } from './channel-card'
 import { useChannelsColumns } from './channels-columns'
 import { useChannels } from './channels-provider'
@@ -99,8 +97,6 @@ export function ChannelsTable() {
     setSensitiveVisible,
   } = useChannels()
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const { canWrite } = useChannelPermissions()
-  const isAdmin = useIsAdmin()
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([])
@@ -211,7 +207,6 @@ export function ChannelsTable() {
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
     queryFn: getGroups,
-    enabled: isAdmin,
   })
 
   const groupOptions = useMemo(
@@ -459,16 +454,12 @@ export function ChannelsTable() {
             options: typeFilterOptions,
             singleSelect: true,
           },
-          ...(canWrite
-            ? [
-                {
-                  columnId: 'group',
-                  title: t('Group'),
-                  options: groupFilterOptions,
-                  singleSelect: true,
-                },
-              ]
-            : []),
+          {
+            columnId: 'group',
+            title: t('Group'),
+            options: groupFilterOptions,
+            singleSelect: true,
+          },
         ],
         preActions: (
           <Tooltip>

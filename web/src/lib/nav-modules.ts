@@ -20,13 +20,16 @@ import { getStatus } from '@/lib/api'
 
 export type ModuleAccess = { enabled: boolean; requireAuth: boolean }
 
-export type HeaderNavModule = 'rankings' | 'pricing'
+export type HeaderNavModule = 'rankings' | 'pricing' | 'photo' | 'video' | 'studio'
 
 export type HeaderNavModules = {
   home: boolean
   console: boolean
   pricing: ModuleAccess
   rankings: ModuleAccess
+  photo: ModuleAccess
+  video: ModuleAccess
+  studio: ModuleAccess
   docs: boolean
   about: boolean
   [key: string]: boolean | ModuleAccess
@@ -38,12 +41,18 @@ const DEFAULT_HEADER_NAV_MODULES: HeaderNavModules = {
   pricing: { enabled: true, requireAuth: false },
   rankings: { enabled: true, requireAuth: false },
   docs: true,
+  photo: { enabled: true, requireAuth: false },
+  video: { enabled: true, requireAuth: false },
+  studio: { enabled: true, requireAuth: false },
   about: true,
 }
 
 const DEFAULTS: Record<HeaderNavModule, ModuleAccess> = {
   pricing: DEFAULT_HEADER_NAV_MODULES.pricing,
   rankings: DEFAULT_HEADER_NAV_MODULES.rankings,
+  photo: DEFAULT_HEADER_NAV_MODULES.photo,
+  video: DEFAULT_HEADER_NAV_MODULES.video,
+  studio: DEFAULT_HEADER_NAV_MODULES.studio,
 }
 
 function cloneHeaderNavDefaults(): HeaderNavModules {
@@ -51,6 +60,9 @@ function cloneHeaderNavDefaults(): HeaderNavModules {
     ...DEFAULT_HEADER_NAV_MODULES,
     pricing: { ...DEFAULT_HEADER_NAV_MODULES.pricing },
     rankings: { ...DEFAULT_HEADER_NAV_MODULES.rankings },
+    photo: { ...DEFAULT_HEADER_NAV_MODULES.photo },
+    video: { ...DEFAULT_HEADER_NAV_MODULES.video },
+    studio: { ...DEFAULT_HEADER_NAV_MODULES.studio },
   }
 }
 
@@ -116,6 +128,18 @@ export function parseHeaderNavModules(raw: unknown): HeaderNavModules {
     }
     if (key === 'rankings') {
       result.rankings = parseAccess(value, result.rankings)
+      return
+    }
+    if (key === 'photo') {
+      result.photo = parseAccess(value, result.photo)
+      return
+    }
+    if (key === 'video') {
+      result.video = parseAccess(value, result.video)
+      return
+    }
+    if (key === 'studio') {
+      result.studio = parseAccess(value, result.studio)
       return
     }
 

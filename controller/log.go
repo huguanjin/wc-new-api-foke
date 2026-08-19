@@ -5,41 +5,10 @@ import (
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 
 	"github.com/gin-gonic/gin"
 )
-
-func resolveLogChannelScope(c *gin.Context, requestedChannel int) (ownedChannelIDs []int, channel int, maskPII bool, ok bool) {
-	role := c.GetInt("role")
-	if common.IsFullAdmin(role) {
-		return nil, requestedChannel, false, true
-	}
-	if role != common.RoleChannelAdmin {
-		common.ApiErrorI18n(c, i18n.MsgAuthInsufficientPrivilege)
-		return nil, 0, false, false
-	}
-	ids, err := model.GetChannelIdsByCreator(c.GetInt("id"))
-	if err != nil {
-		common.ApiError(c, err)
-		return nil, 0, false, false
-	}
-	if requestedChannel != 0 {
-		allowed := false
-		for _, id := range ids {
-			if id == requestedChannel {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return []int{}, 0, true, true
-		}
-		return ids, requestedChannel, true, true
-	}
-	return ids, 0, true, true
-}
 
 func GetAllLogs(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
@@ -53,21 +22,10 @@ func GetAllLogs(c *gin.Context) {
 	group := c.Query("group")
 	requestId := c.Query("request_id")
 	upstreamRequestId := c.Query("upstream_request_id")
-	ownedChannelIDs, channel, maskPII, ok := resolveLogChannelScope(c, channel)
-	if !ok {
-		return
-	}
-	if maskPII {
-		username = ""
-		tokenName = ""
-	}
-	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, ownedChannelIDs, group, requestId, upstreamRequestId)
+	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, upstreamRequestId)
 	if err != nil {
 		common.ApiError(c, err)
 		return
-	}
-	if maskPII {
-		model.FormatChannelAdminLogs(logs)
 	}
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(logs)
@@ -146,19 +104,12 @@ func GetLogsStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	ownedChannelIDs, channel, maskPII, ok := resolveLogChannelScope(c, channel)
-	if !ok {
-		return
-	}
-	if maskPII {
-		username = ""
-		tokenName = ""
-	}
-	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, ownedChannelIDs, group)
+	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	//tokenNum := model.SumUsedToken(logType, startTimestamp, endTimestamp, modelName, username, "")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -180,11 +131,12 @@ func GetLogsSelfStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, nil, group)
+	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	//tokenNum := model.SumUsedToken(logType, startTimestamp, endTimestamp, modelName, username, tokenName)
 	c.JSON(200, gin.H{
 		"success": true,
 		"message": "",
@@ -192,6 +144,7 @@ func GetLogsSelfStat(c *gin.Context) {
 			"quota": quotaNum.Quota,
 			"rpm":   quotaNum.Rpm,
 			"tpm":   quotaNum.Tpm,
+			//"token": tokenNum,
 		},
 	})
 	return

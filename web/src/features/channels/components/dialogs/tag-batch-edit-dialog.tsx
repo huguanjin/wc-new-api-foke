@@ -31,8 +31,6 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 
-import { useIsAdmin } from '@/hooks/use-admin'
-
 import {
   getTagModels,
   editTagChannels,
@@ -56,7 +54,6 @@ export function TagBatchEditDialog({
   const { t } = useTranslation()
   const { currentTag } = useChannels()
   const queryClient = useQueryClient()
-  const canFetchGroups = useIsAdmin()
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -70,7 +67,6 @@ export function TagBatchEditDialog({
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups'],
     queryFn: getGroups,
-    enabled: open && canFetchGroups,
   })
 
   // Transform groups to multi-select options

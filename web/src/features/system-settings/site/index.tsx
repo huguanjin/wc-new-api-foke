@@ -26,11 +26,16 @@ import {
 
 const defaultSiteSettings: SiteSettings = {
   Notice: '',
+  NoticeI18nContent: '',
   SystemName: 'New API',
   Logo: '',
   Footer: '',
   About: '',
   HomePageContent: '',
+  HomePageHeroContent: '',
+  HomePageHeroI18nContent: '',
+  HomePageModelCarouselContent: '',
+  HomePageModelCarouselI18nContent: '',
   ServerAddress: '',
   'legal.user_agreement': '',
   'legal.privacy_policy': '',

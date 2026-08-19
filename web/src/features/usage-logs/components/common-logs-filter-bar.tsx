@@ -116,7 +116,7 @@ export function CommonLogsFilterBar<TData>(
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const searchParams = route.useSearch()
-  const { isAdminView: isAdmin, hideUserFilters } = useLogsViewScope()
+  const { isAdminView: isAdmin } = useLogsViewScope()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
 
@@ -360,7 +360,6 @@ export function CommonLogsFilterBar<TData>(
   )
   const advancedFilters = (
     <>
-      {!hideUserFilters && (
       <LogsFilterField>
         <LogsFilterInput
           placeholder={t('Token Name')}
@@ -370,8 +369,7 @@ export function CommonLogsFilterBar<TData>(
           onKeyDown={handleKeyDown}
         />
       </LogsFilterField>
-      )}
-      {isAdmin && !hideUserFilters && (
+      {isAdmin && (
         <LogsFilterField>
           <LogsFilterInput
             placeholder={t('Username')}

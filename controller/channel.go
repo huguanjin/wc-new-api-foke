@@ -81,9 +81,8 @@ func applyChannelStatusFilter(query *gorm.DB, statusFilter int) *gorm.DB {
 	return query
 }
 
-func buildChannelListQuery(c *gin.Context, group string, statusFilter int, typeFilter int) *gorm.DB {
+func buildChannelListQuery(group string, statusFilter int, typeFilter int) *gorm.DB {
 	query := model.DB.Model(&model.Channel{})
-	query = applyChannelAccessScope(query, resolveChannelAccessScope(c))
 	query = model.ApplyChannelGroupFilter(query, group)
 	query = applyChannelStatusFilter(query, statusFilter)
 	if typeFilter >= 0 {
@@ -120,13 +119,13 @@ func GetAllChannels(c *gin.Context) {
 	var total int64
 
 	if enableTagMode {
-		tags, err := model.GetPaginatedChannelTags(buildChannelListQuery(c, groupFilter, statusFilter, typeFilter), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		tags, err := model.GetPaginatedChannelTags(buildChannelListQuery(groupFilter, statusFilter, typeFilter), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 		if err != nil {
 			common.SysError("failed to get paginated tags: " + err.Error())
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "获取标签失败，请稍后重试"})
 			return
 		}
-		total, err = model.CountChannelTags(buildChannelListQuery(c, groupFilter, statusFilter, typeFilter))
+		total, err = model.CountChannelTags(buildChannelListQuery(groupFilter, statusFilter, typeFilter))
 		if err != nil {
 			common.SysError("failed to count tags: " + err.Error())
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "获取标签数量失败，请稍后重试"})
@@ -137,7 +136,7 @@ func GetAllChannels(c *gin.Context) {
 				continue
 			}
 			var tagChannels []*model.Channel
-			err := sortOptions.Apply(buildChannelListQuery(c, groupFilter, statusFilter, typeFilter).Where("tag = ?", *tag)).
+			err := sortOptions.Apply(buildChannelListQuery(groupFilter, statusFilter, typeFilter).Where("tag = ?", *tag)).
 				Omit("key").
 				Find(&tagChannels).Error
 			if err != nil {
@@ -148,13 +147,13 @@ func GetAllChannels(c *gin.Context) {
 			channelData = append(channelData, tagChannels...)
 		}
 	} else {
-		if err := buildChannelListQuery(c, groupFilter, statusFilter, typeFilter).Count(&total).Error; err != nil {
+		if err := buildChannelListQuery(groupFilter, statusFilter, typeFilter).Count(&total).Error; err != nil {
 			common.SysError("failed to count channels: " + err.Error())
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "获取渠道数量失败，请稍后重试"})
 			return
 		}
 
-		err := sortOptions.Apply(buildChannelListQuery(c, groupFilter, statusFilter, typeFilter)).
+		err := sortOptions.Apply(buildChannelListQuery(groupFilter, statusFilter, typeFilter)).
 			Limit(pageInfo.GetPageSize()).
 			Offset(pageInfo.GetStartIdx()).
 			Omit("key").
@@ -170,7 +169,7 @@ func GetAllChannels(c *gin.Context) {
 		clearChannelInfo(datum)
 	}
 
-	countQuery := buildChannelListQuery(c, groupFilter, statusFilter, -1)
+	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
 	var results []struct {
 		Type  int64
 		Count int64
@@ -295,7 +294,7 @@ func SearchChannels(c *gin.Context) {
 		for _, tag := range tags {
 			if tag != nil && *tag != "" {
 				var tagChannels []*model.Channel
-				err := sortOptions.Apply(buildChannelListQuery(c, group, -1, -1).Where("tag = ?", *tag)).
+				err := sortOptions.Apply(buildChannelListQuery(group, -1, -1).Where("tag = ?", *tag)).
 					Omit("key").
 					Find(&tagChannels).Error
 				if err != nil {
@@ -316,16 +315,6 @@ func SearchChannels(c *gin.Context) {
 				"message": err.Error(),
 			})
 			return
-		}
-		scope := resolveChannelAccessScope(c)
-		if !common.IsFullAdmin(scope.Role) {
-			filtered := make([]*model.Channel, 0, len(channels))
-			for _, ch := range channels {
-				if channelAccessible(ch, scope) {
-					filtered = append(filtered, ch)
-				}
-			}
-			channels = filtered
 		}
 		channelData = channels
 	}
@@ -414,9 +403,6 @@ func GetChannel(c *gin.Context) {
 	channel, err := model.GetChannelById(id, false)
 	if err != nil {
 		common.ApiError(c, err)
-		return
-	}
-	if abortIfChannelInaccessible(c, channel) {
 		return
 	}
 	if channel != nil {
@@ -641,21 +627,6 @@ func AddChannel(c *gin.Context) {
 	}
 
 	addChannelRequest.Channel.CreatedTime = common.GetTimestamp()
-	creatorID := c.GetInt("id")
-	role := c.GetInt("role")
-	if role == common.RoleChannelAdmin {
-		applyChannelAdminCreateDefaults(addChannelRequest.Channel, creatorID)
-		addChannelRequest.BatchAddSetKeyPrefix2Name = false
-		if err := validateChannelAdminName(addChannelRequest.Channel.Name, c.GetString("username")); err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": err.Error(),
-			})
-			return
-		}
-	} else {
-		addChannelRequest.Channel.CreatorId = creatorID
-	}
 	keys := make([]string, 0)
 	switch addChannelRequest.Mode {
 	case "multi_to_single":
@@ -993,9 +964,6 @@ func UpdateChannel(c *gin.Context) {
 	}
 	clearChannelReadOnlyFields(&channel, requestData)
 
-	role := c.GetInt("role")
-	userID := c.GetInt("id")
-
 	// 使用统一的校验函数
 	if err := validateChannel(&channel.Channel, false); err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -1013,24 +981,6 @@ func UpdateChannel(c *gin.Context) {
 		})
 		return
 	}
-	if abortIfChannelInaccessible(c, originChannel) {
-		return
-	}
-	if role == common.RoleChannelAdmin {
-		stripChannelAdminRestrictedFields(&channel, originChannel, requestData)
-		if _, nameProvided := requestData["name"]; nameProvided && channel.Name != originChannel.Name {
-			if err := validateChannelAdminName(channel.Name, c.GetString("username")); err != nil {
-				c.JSON(http.StatusOK, gin.H{
-					"success": false,
-					"message": err.Error(),
-				})
-				return
-			}
-		}
-	}
-	// Channel admins cannot change creator ownership.
-	channel.CreatorId = originChannel.CreatorId
-
 	originProxy := originChannel.GetSetting().Proxy
 	proxyChanged := false
 	if _, settingProvided := requestData["setting"]; settingProvided {
@@ -1042,10 +992,8 @@ func UpdateChannel(c *gin.Context) {
 	// Always copy the original ChannelInfo so that fields like IsMultiKey and MultiKeySize are retained.
 	channel.ChannelInfo = originChannel.ChannelInfo
 
-	isChannelAdminEdit := role == common.RoleChannelAdmin && originChannel.CreatorId == userID
 	if channelHasSensitiveChanges(&channel, originChannel, requestData) &&
-		!authz.Can(userID, role, authz.ChannelSensitiveWrite) &&
-		!isChannelAdminEdit {
+		!authz.Can(c.GetInt("id"), c.GetInt("role"), authz.ChannelSensitiveWrite) {
 		common.ApiErrorI18n(c, i18n.MsgAuthInsufficientPrivilege)
 		return
 	}

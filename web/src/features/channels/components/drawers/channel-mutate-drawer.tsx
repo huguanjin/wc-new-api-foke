@@ -114,6 +114,11 @@ import {
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useHiddenClickUnlock } from '@/hooks/use-hidden-click-unlock'
 import {
+  ADMIN_PERMISSION_ACTIONS,
+  ADMIN_PERMISSION_RESOURCES,
+  hasPermission,
+} from '@/lib/admin-permissions'
+import {
   parseChannelConnectionInfo,
   type ChannelConnectionInfo,
 } from '@/lib/channel-connection-info'
@@ -168,8 +173,6 @@ import {
 } from '../../lib/status-code-risk-guard'
 import type { Channel } from '../../types'
 import { useChannels } from '../channels-provider'
-import { useChannelPermissions } from '../../hooks/use-channel-permissions'
-import { ChannelAdminNameFields } from './channel-admin-name-fields'
 import { AdvancedCustomEditorDialog } from '../dialogs/advanced-custom-editor-dialog'
 import { FetchModelsDialog } from '../dialogs/fetch-models-dialog'
 import {
@@ -609,9 +612,11 @@ export function ChannelMutateDrawer({
   const queryClient = useQueryClient()
   const { setOpen } = useChannels()
   const currentUser = useAuthStore((s) => s.auth.user)
-  const { canCreate, canEditChannel, canEditSensitive, canOperate, canWrite } =
-    useChannelPermissions()
-  const canManageSecrets = canEditSensitive || canCreate
+  const canEditSensitive = hasPermission(
+    currentUser,
+    ADMIN_PERMISSION_RESOURCES.CHANNEL,
+    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+  )
   const canRevealChannelKey = currentUser?.role === ROLE.SUPER_ADMIN
   const [fetchModelsDialogOpen, setFetchModelsDialogOpen] = useState(false)
   const [channelKey, setChannelKey] = useState<string | null>(null)
@@ -650,11 +655,7 @@ export function ChannelMutateDrawer({
 
   const isEditing = Boolean(currentRow)
   const channelId = currentRow?.id ?? null
-  const sensitiveLocked = isEditing && !canManageSecrets
-  const isViewOnly = isEditing && !canEditChannel
-  const isChannelAdmin = currentUser?.role === ROLE.CHANNEL_ADMIN
-  const useStructuredName = isChannelAdmin && !isEditing
-  const channelAdminUsername = currentUser?.username?.trim() ?? ''
+  const sensitiveLocked = isEditing && !canEditSensitive
 
   // Fetch channel details if editing
   const { data: channelData, isLoading: isChannelLoading } = useQuery({
@@ -667,21 +668,18 @@ export function ChannelMutateDrawer({
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups'],
     queryFn: getGroups,
-    enabled: open && canWrite,
   })
 
   // Fetch all available models
   const { data: allModelsData } = useQuery({
     queryKey: ['channel_models'],
     queryFn: getAllModels,
-    enabled: open,
   })
 
   // Fetch prefill model groups
   const { data: prefillGroupsData } = useQuery({
     queryKey: ['prefill_groups', 'model'],
     queryFn: () => getPrefillGroups('model'),
-    enabled: open && canWrite,
   })
 
   const { copyToClipboard } = useCopyToClipboard()
@@ -771,7 +769,7 @@ export function ChannelMutateDrawer({
   )
   const shouldPreviewUnsavedModels =
     !isEditing ||
-    (currentType === CHANNEL_TYPE_ADVANCED_CUSTOM && canManageSecrets)
+    (currentType === CHANNEL_TYPE_ADVANCED_CUSTOM && canEditSensitive)
   const {
     unlocked: doubaoApiEditUnlocked,
     handleClick: handleApiConfigSecretClick,
@@ -964,9 +962,7 @@ export function ChannelMutateDrawer({
     formErrors.azure_responses_version
   )
   const modelsHaveErrors = Boolean(
-    formErrors.models ||
-    (!isChannelAdmin && formErrors.group) ||
-    formErrors.model_mapping
+    formErrors.models || formErrors.group || formErrors.model_mapping
   )
   const advancedHaveErrors =
     hasAdvancedSettingsErrors(formErrors) || Boolean(formErrors.advanced_custom)
@@ -979,8 +975,7 @@ export function ChannelMutateDrawer({
     (!providerRequiresOther || currentOther?.trim())
   )
   const modelsComplete = Boolean(
-    currentModelsArray.length > 0 &&
-    (isChannelAdmin || currentGroups?.length)
+    currentModelsArray.length > 0 && currentGroups?.length
   )
   const requiredCompletedCount = [
     identityComplete,
@@ -1115,7 +1110,7 @@ export function ChannelMutateDrawer({
     },
     {
       id: CHANNEL_EDITOR_SECTION_IDS.models,
-      title: isChannelAdmin ? t('Models') : t('Models & Groups'),
+      title: t('Models & Groups'),
       description: getSectionStatusLabel(modelsStatus, t),
       statusLabel: getSectionStatusLabel(modelsStatus, t),
       status: modelsStatus,
@@ -1439,7 +1434,7 @@ export function ChannelMutateDrawer({
       return
     }
 
-    if (isEditing ? !canOperate : !canEditSensitive) {
+    if (!isEditing && !canEditSensitive) {
       toast.error(t("You don't have necessary permission"))
       return
     }
@@ -1454,7 +1449,7 @@ export function ChannelMutateDrawer({
     }
 
     setFetchModelsDialogOpen(true)
-  }, [isEditing, canOperate, canEditSensitive, form, t])
+  }, [isEditing, canEditSensitive, form, t])
 
   const formPreviewFetcher = useCallback(async (): Promise<string[]> => {
     if (!canEditSensitive) {
@@ -1628,23 +1623,11 @@ export function ChannelMutateDrawer({
   // Submit handler
   const onSubmit = useCallback(
     async (data: ChannelFormValues) => {
-      if (isViewOnly) {
-        return
-      }
+      // Validate key is required when creating
       if (!isEditing && !data.key?.trim()) {
         form.setError('key', {
           type: 'manual',
           message: ERROR_MESSAGES.REQUIRED_KEY,
-        })
-        return
-      }
-
-      if (useStructuredName && !data.name?.trim()) {
-        form.setError('name', {
-          type: 'manual',
-          message: t(
-            'Please select resource composition, model series, lifecycle, and enter a rate.'
-          ),
         })
         return
       }
@@ -1739,9 +1722,7 @@ export function ChannelMutateDrawer({
       await channelMutation.mutateAsync(data)
     },
     [
-      isViewOnly,
       isEditing,
-      useStructuredName,
       sensitiveLocked,
       form,
       confirmMissingModelMappings,
@@ -1887,26 +1868,20 @@ export function ChannelMutateDrawer({
                     <ChannelTypeLogo type={currentType} size={22} />
                   </IconBadge>
                   <span>
-                    {isViewOnly
-                      ? t('Channel Details')
-                      : isEditing
-                        ? t('Edit Channel')
-                        : t('Create Channel')}
+                    {isEditing ? t('Edit Channel') : t('Create Channel')}
                     <span className='text-muted-foreground ml-2 text-sm font-normal'>
                       {t(currentTypeLabel)}
                     </span>
                   </span>
                 </SheetTitle>
                 <SheetDescription className='mt-1'>
-                  {isViewOnly
-                    ? t('You can view this channel but cannot edit it.')
-                    : isEditing
-                      ? t(
-                          "Update channel configuration and click save when you're done."
-                        )
-                      : t(
-                          'Add a new channel by providing the necessary information.'
-                        )}
+                  {isEditing
+                    ? t(
+                        "Update channel configuration and click save when you're done."
+                      )
+                    : t(
+                        'Add a new channel by providing the necessary information.'
+                      )}
                 </SheetDescription>
               </div>
               {!isEditing && (
@@ -1924,15 +1899,7 @@ export function ChannelMutateDrawer({
             </div>
           </SheetHeader>
 
-          {isViewOnly && (
-            <Alert>
-              <AlertDescription>
-                {t('You can view this channel but cannot edit it.')}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {sensitiveLocked && !isViewOnly && (
+          {sensitiveLocked && (
             <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
               <AlertDescription>
                 {t(
@@ -1994,13 +1961,7 @@ export function ChannelMutateDrawer({
                     expandedItemId={expandedEditorNavItemId}
                     onNavigate={handleEditorNavNavigate}
                   />
-                  <fieldset
-                    disabled={isViewOnly}
-                    className={cn(
-                      'flex min-w-0 flex-col gap-5 border-0 p-0',
-                      isViewOnly && 'pointer-events-none'
-                    )}
-                  >
+                  <div className='flex min-w-0 flex-col gap-5'>
                     {/* ── Basic Information ── */}
                     <div
                       id={CHANNEL_EDITOR_SECTION_IDS.identity}
@@ -2062,53 +2023,25 @@ export function ChannelMutateDrawer({
                             />
                           </fieldset>
 
-                          {!useStructuredName && (
-                            <FormField
-                              control={form.control}
-                              name='name'
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('Name *')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder={t(FIELD_PLACEHOLDERS.NAME)}
-                                      readOnly={isChannelAdmin}
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
-                        </div>
-
-                        {useStructuredName && (
                           <FormField
                             control={form.control}
                             name='name'
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>{t('Name *')}</FormLabel>
-                                <ChannelAdminNameFields
-                                  key={open ? 'create' : 'closed'}
-                                  username={channelAdminUsername}
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                />
-                                {form.formState.errors.name ? (
-                                  <p className='text-destructive text-sm'>
-                                    {t(
-                                      'Please select resource composition, model series, lifecycle, and enter a rate.'
-                                    )}
-                                  </p>
-                                ) : null}
+                                <FormControl>
+                                  <Input
+                                    placeholder={t(FIELD_PLACEHOLDERS.NAME)}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
-                        )}
+                        </div>
 
-                        {!isEditing && !isChannelAdmin && (
+                        {!isEditing && (
                           <FormField
                             control={form.control}
                             name='status'
@@ -3315,7 +3248,7 @@ export function ChannelMutateDrawer({
                       id={CHANNEL_EDITOR_SECTION_IDS.models}
                       className='scroll-mt-4'
                     >
-                      <ChannelModelsSection hideGroups={isChannelAdmin}>
+                      <ChannelModelsSection>
                         <div className='space-y-5'>
                           <div className='border-border/60 bg-muted/10 rounded-lg border p-4'>
                             <FormField
@@ -3436,11 +3369,7 @@ export function ChannelMutateDrawer({
                                       variant='outline'
                                       size='sm'
                                       onClick={handleFetchModels}
-                                      disabled={
-                                        isEditing
-                                          ? !canOperate
-                                          : !canEditSensitive
-                                      }
+                                      disabled={!isEditing && !canEditSensitive}
                                     >
                                       <Sparkles
                                         className='mr-2 h-4 w-4'
@@ -3448,9 +3377,7 @@ export function ChannelMutateDrawer({
                                       />
                                       {t('Fetch from Upstream')}
                                     </Button>
-                                    {(isEditing
-                                      ? !canOperate
-                                      : !canEditSensitive) && (
+                                    {!isEditing && !canEditSensitive && (
                                       <span className='text-muted-foreground basis-full text-xs'>
                                         {t(
                                           'No permission to perform this action'
@@ -3648,40 +3575,37 @@ export function ChannelMutateDrawer({
                             />
                           </div>
 
-                          {!isChannelAdmin && (
-                            <div className='border-border/60 rounded-lg border p-4'>
-                              <FormField
-                                control={form.control}
-                                name='group'
-                                render={({ field }) => (
-                                  <FormItem className='space-y-3'>
-                                    <div className='space-y-1'>
-                                      <FormLabel>{t('Groups *')}</FormLabel>
-                                      <FormDescription>
-                                        {t(FIELD_DESCRIPTIONS.GROUP)}
-                                      </FormDescription>
-                                    </div>
-                                    <FormControl>
-                                      {isLoadingGroups ? (
-                                        <Skeleton className='h-10 w-full' />
-                                      ) : (
-                                        <MultiSelect
-                                          options={groupOptions}
-                                          selected={field.value}
-                                          onChange={field.onChange}
-                                          disabled={!canWrite}
-                                          placeholder={t(
-                                            FIELD_PLACEHOLDERS.GROUP
-                                          )}
-                                        />
-                                      )}
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          )}
+                          <div className='border-border/60 rounded-lg border p-4'>
+                            <FormField
+                              control={form.control}
+                              name='group'
+                              render={({ field }) => (
+                                <FormItem className='space-y-3'>
+                                  <div className='space-y-1'>
+                                    <FormLabel>{t('Groups *')}</FormLabel>
+                                    <FormDescription>
+                                      {t(FIELD_DESCRIPTIONS.GROUP)}
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    {isLoadingGroups ? (
+                                      <Skeleton className='h-10 w-full' />
+                                    ) : (
+                                      <MultiSelect
+                                        options={groupOptions}
+                                        selected={field.value}
+                                        onChange={field.onChange}
+                                        placeholder={t(
+                                          FIELD_PLACEHOLDERS.GROUP
+                                        )}
+                                      />
+                                    )}
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
                       </ChannelModelsSection>
                     </div>
@@ -3726,7 +3650,6 @@ export function ChannelMutateDrawer({
                                         type='number'
                                         placeholder='0'
                                         {...field}
-                                        disabled={!canWrite}
                                         onChange={(e) =>
                                           field.onChange(Number(e.target.value))
                                         }
@@ -3751,7 +3674,6 @@ export function ChannelMutateDrawer({
                                         type='number'
                                         placeholder='0'
                                         {...field}
-                                        disabled={!canWrite}
                                         onChange={(e) =>
                                           field.onChange(Number(e.target.value))
                                         }
@@ -4837,7 +4759,7 @@ export function ChannelMutateDrawer({
                         )}
                       </ChannelAdvancedSection>
                     </div>
-                  </fieldset>
+                  </div>
                 </div>
               )}
             </form>
@@ -4847,16 +4769,14 @@ export function ChannelMutateDrawer({
             <SheetClose
               render={<Button variant='outline' disabled={isSubmitting} />}
             >
-              {isViewOnly ? t('Close') : t('Cancel')}
+              {t('Cancel')}
             </SheetClose>
-            {!isViewOnly && (
-              <Button form='channel-form' type='submit' disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                )}
-                {isEditing ? t('Update Channel') : t('Save changes')}
-              </Button>
-            )}
+            <Button form='channel-form' type='submit' disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              {isEditing ? t('Update Channel') : t('Save changes')}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

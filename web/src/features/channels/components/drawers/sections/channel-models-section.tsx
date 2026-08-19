@@ -27,7 +27,6 @@ import {
 
 type ChannelModelsSectionProps = {
   children: ReactNode
-  hideGroups?: boolean
 }
 
 export function ChannelModelsSection(props: ChannelModelsSectionProps) {
@@ -36,12 +35,8 @@ export function ChannelModelsSection(props: ChannelModelsSectionProps) {
   return (
     <SideDrawerSection>
       <SideDrawerSectionHeader
-        title={props.hideGroups ? t('Models') : t('Models & Groups')}
-        description={
-          props.hideGroups
-            ? t('Published models and model remapping rules.')
-            : t('Published models, groups, and model remapping rules.')
-        }
+        title={t('Models & Groups')}
+        description={t('Published models, groups, and model remapping rules.')}
         icon={<Boxes className='h-4 w-4' aria-hidden='true' />}
         iconTone='chart-4'
       />
