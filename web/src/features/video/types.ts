@@ -16,12 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+
 export type VideoParams = {
   model: string
   prompt: string
   duration: string
   aspectRatio: '16:9' | '9:16' | '1:1'
-  resolution: '720P' | '1080P'
+  resolution: '720p' | '1080p'
   referenceImageUrl?: string
 }
 
@@ -50,7 +51,7 @@ export type VideoHistoryItem = {
   model: string
   duration: string
   aspectRatio: '16:9' | '9:16' | '1:1'
-  resolution: '720P' | '1080P'
+  resolution: '720p' | '1080p'
   referenceImageUrl?: string
   createdAt: number
 }

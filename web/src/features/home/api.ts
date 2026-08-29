@@ -38,9 +38,7 @@ export async function getHomePageContent(): Promise<HomePageContentResponse> {
 }
 
 export async function getHomePageHeroContent(): Promise<HomePageHeroContentResponse> {
-  const res = await api.get('/api/home_page_hero_content', {
-    params: { t: Date.now() },
-  })
+  const res = await api.get('/api/home_page_hero_content')
   return res.data
 }
 

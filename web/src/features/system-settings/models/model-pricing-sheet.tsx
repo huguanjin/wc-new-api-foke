@@ -81,13 +81,6 @@ import {
 } from './model-pricing-core'
 import { PriceInput, PriceLane } from './model-pricing-inputs'
 import { formatPricingNumber } from './pricing-format'
-import { ResolutionPricingEditor } from './resolution-pricing-editor'
-import {
-  createResolutionRow,
-  resolutionPricesFromRows,
-  rowsFromResolutionPrices,
-  type ResolutionPriceRow,
-} from './resolution-pricing'
 import { TieredPricingEditor } from './tiered-pricing-editor'
 
 export type { ModelRatioData } from './model-pricing-core'
@@ -162,7 +155,6 @@ export const ModelPricingEditorPanel = forwardRef<
   })
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
-  const [resolutionRows, setResolutionRows] = useState<ResolutionPriceRow[]>([])
   const [editorReloadToken, setEditorReloadToken] = useState(0)
   const isEditMode = !!editData
 
@@ -196,25 +188,15 @@ export const ModelPricingEditorPanel = forwardRef<
         audioRatio: editData.audioRatio || '',
         audioCompletionRatio: editData.audioCompletionRatio || '',
       })
-      let nextMode: PricingMode = 'per-token'
-      if (editData.billingMode === 'tiered_expr') {
-        nextMode = 'tiered_expr'
-      } else if (editData.billingMode === 'resolution') {
-        nextMode = 'resolution'
-      } else if (editData.price) {
-        nextMode = 'per-request'
-      }
-      setPricingMode(nextMode)
+      setPricingMode(
+        editData.billingMode === 'tiered_expr'
+          ? 'tiered_expr'
+          : editData.price
+            ? 'per-request'
+            : 'per-token'
+      )
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
-      const nextResolutionRows = rowsFromResolutionPrices(
-        editData.resolutionPrices
-      )
-      setResolutionRows(
-        nextResolutionRows.length > 0
-          ? nextResolutionRows
-          : [createResolutionRow('720P', '')]
-      )
     } else {
       form.reset({
         name: '',
@@ -230,7 +212,6 @@ export const ModelPricingEditorPanel = forwardRef<
       setPricingMode('per-token')
       setBillingExpr('')
       setRequestRuleExpr('')
-      setResolutionRows([createResolutionRow('720P', '')])
     }
 
     setPromptPrice(nextLaneState.promptPrice)
@@ -357,9 +338,6 @@ export const ModelPricingEditorPanel = forwardRef<
     if (nextMode === 'tiered_expr' && !billingExpr) {
       setBillingExpr('tier("base", p * 0 + c * 0)')
     }
-    if (nextMode === 'resolution' && resolutionRows.length === 0) {
-      setResolutionRows([createResolutionRow('720P', '')])
-    }
   }
 
   const watchedValues = form.watch()
@@ -373,8 +351,7 @@ export const ModelPricingEditorPanel = forwardRef<
         promptPrice,
         lanePrices,
         laneEnabled,
-        t,
-        resolutionPricesFromRows(resolutionRows) ?? undefined
+        t
       ),
     [
       billingExpr,
@@ -383,7 +360,6 @@ export const ModelPricingEditorPanel = forwardRef<
       pricingMode,
       promptPrice,
       requestRuleExpr,
-      resolutionRows,
       t,
       watchedValues,
     ]
@@ -431,19 +407,8 @@ export const ModelPricingEditorPanel = forwardRef<
       nextWarnings.push(t('Audio output price requires an audio input price.'))
     }
 
-    if (pricingMode === 'resolution') {
-      const prices = resolutionPricesFromRows(resolutionRows)
-      if (!prices) {
-        nextWarnings.push(
-          t(
-            'Add at least one resolution with a non-negative price. Duplicate labels are not allowed.'
-          )
-        )
-      }
-    }
-
     return nextWarnings
-  }, [editData, laneEnabled, lanePrices, pricingMode, promptPrice, resolutionRows, t])
+  }, [editData, laneEnabled, lanePrices, pricingMode, promptPrice, t])
 
   const validatePricingValues = useCallback(() => {
     if (
@@ -470,17 +435,8 @@ export const ModelPricingEditorPanel = forwardRef<
       return false
     }
 
-    if (pricingMode === 'resolution' && !resolutionPricesFromRows(resolutionRows)) {
-      form.setError('price', {
-        message: t(
-          'Add at least one resolution with a non-negative price. Duplicate labels are not allowed.'
-        ),
-      })
-      return false
-    }
-
     return true
-  }, [form, laneEnabled, lanePrices, pricingMode, promptPrice, resolutionRows, t])
+  }, [form, laneEnabled, lanePrices, pricingMode, promptPrice, t])
 
   const buildSubmitData = useCallback(
     (values: ModelPricingFormValues) => {
@@ -502,14 +458,9 @@ export const ModelPricingEditorPanel = forwardRef<
         data.requestRuleExpr = requestRuleExpr
       }
 
-      if (pricingMode === 'resolution') {
-        const prices = resolutionPricesFromRows(resolutionRows)
-        if (prices) data.resolutionPrices = prices
-      }
-
       return data
     },
-    [billingExpr, pricingMode, requestRuleExpr, resolutionRows]
+    [billingExpr, pricingMode, requestRuleExpr]
   )
 
   useImperativeHandle(
@@ -593,15 +544,12 @@ export const ModelPricingEditorPanel = forwardRef<
                   onValueChange={handleModeChange}
                   className='gap-4'
                 >
-                  <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4'>
+                  <TabsList className='grid w-full grid-cols-3'>
                     <TabsTrigger value='per-token'>
                       {t('Per-token')}
                     </TabsTrigger>
                     <TabsTrigger value='per-request'>
                       {t('Per-request')}
-                    </TabsTrigger>
-                    <TabsTrigger value='resolution'>
-                      {t('By resolution')}
                     </TabsTrigger>
                     <TabsTrigger value='tiered_expr'>
                       {t('Expression')}
@@ -689,13 +637,6 @@ export const ModelPricingEditorPanel = forwardRef<
                         )}
                       />
                     </FieldGroup>
-                  </TabsContent>
-
-                  <TabsContent value='resolution' className='pt-0'>
-                    <ResolutionPricingEditor
-                      rows={resolutionRows}
-                      onChange={setResolutionRows}
-                    />
                   </TabsContent>
 
                   <TabsContent value='tiered_expr' className='pt-0'>

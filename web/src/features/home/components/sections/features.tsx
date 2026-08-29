@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 import { codeToHtml } from 'shiki'
 
 import { AnimateInView } from '@/components/animate-in-view'
-import { LetterTypewriterBlock } from './letter-typewriter'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 interface FeaturesProps {
@@ -38,7 +37,7 @@ const codeSnippets = [
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $WEBCHANNEL_API_KEY" \\
   -d '{
-    "model": "kimi-k3",
+    "model": "gemini-2.5-flash-image",
     "messages": [
       {
         "role": "user",
@@ -58,7 +57,7 @@ const client = new OpenAI({
 });
 
 const response = await client.chat.completions.create({
-  model: "kimi-k3",
+  model: "gemini-2.5-flash-image",
   messages: [
     {
       role: "user",
@@ -85,7 +84,7 @@ public class Main {
         .build();
 
     ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
-        .model("kimi-k3")
+        .model("gemini-2.5-flash-image")
         .addUserMessage("Generate a futuristic cyberpunk city at night.")
         .build();
 
@@ -105,7 +104,7 @@ request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 request.setValue("Bearer YOUR_API_KEY", forHTTPHeaderField: "Authorization")
 
 let body: [String: Any] = [
-  "model": "kimi-k3",
+  "model": "gemini-2.5-flash-image",
   "messages": [
     ["role": "user", "content": "Generate a futuristic cyberpunk city at night."]
   ],
@@ -136,7 +135,7 @@ func main() {
 
 	resp, err := client.Chat.Completions.New(context.TODO(),
 		openai.ChatCompletionNewParams{
-			Model: "kimi-k3",
+			Model: "gemini-2.5-flash-image",
 			Messages: []openai.ChatCompletionMessageParamUnion{
 				openai.UserMessage("Generate a futuristic cyberpunk city at night."),
 			},
@@ -155,7 +154,7 @@ func main() {
     code: `<?php
 
 $payload = [
-    'model' => 'kimi-k3',
+    'model' => 'gemini-2.5-flash-image',
     'messages' => [
         [
             'role' => 'user',
@@ -191,7 +190,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="kimi-k3",
+    model="gemini-2.5-flash-image",
     messages=[
         {
             "role": "user",
@@ -211,7 +210,7 @@ Content-Type: application/json
 Authorization: Bearer YOUR_API_KEY
 
 {
-  "model": "kimi-k3",
+  "model": "gemini-2.5-flash-image",
   "messages": [
     {
       "role": "user",
@@ -231,7 +230,7 @@ int main(void) {
   if (!curl) return 1;
 
   const char *payload =
-      "{\\"model\\":\\"kimi-k3\\","
+      "{\\"model\\":\\"gemini-2.5-flash-image\\","
       "\\"messages\\":[{\\"role\\":\\"user\\","
       "\\"content\\":\\"Generate a futuristic cyberpunk city at night.\\"}]}";
 
@@ -265,7 +264,7 @@ client.DefaultRequestHeaders.Authorization =
 
 var payload = """
 {
-  "model": "kimi-k3",
+  "model": "gemini-2.5-flash-image",
   "messages": [
     { "role": "user", "content": "Generate a futuristic cyberpunk city at night." }
   ]
@@ -292,7 +291,7 @@ int main(void) {
     [request setValue:@"Bearer YOUR_API_KEY" forHTTPHeaderField:@"Authorization"];
 
     NSDictionary *payload = @{
-      @"model" : @"kimi-k3",
+      @"model" : @"gemini-2.5-flash-image",
       @"messages" : @[
         @{@"role" : @"user",
           @"content" : @"Generate a futuristic cyberpunk city at night."}
@@ -329,7 +328,7 @@ request = Net::HTTP::Post.new(uri)
 request["Content-Type"] = "application/json"
 request["Authorization"] = "Bearer YOUR_API_KEY"
 request.body = JSON.generate({
-  model: "kimi-k3",
+  model: "gemini-2.5-flash-image",
   messages: [
     { role: "user", content: "Generate a futuristic cyberpunk city at night." }
   ]
@@ -420,16 +419,22 @@ function CodeShowcase() {
   )
 }
 
+const letterParagraphs = [
+  'What is truly hard is not calling a model once, but bringing model capabilities into real products in a stable, controllable, and billable way.',
+  'WebChannel aims to bring complex provider integration, key management, routing policies, log tracing, and cost governance together into one clear entry point.',
+  'You focus on building products; we make sure model capabilities arrive reliably.',
+] as const
+
 export function Features(props: FeaturesProps) {
   const { t } = useTranslation()
 
   return (
     <section
-      className={`relative z-10 bg-[#f7f7f5] px-5 pt-6 pb-16 text-slate-950 sm:px-6 md:pt-10 md:pb-24 ${props.className ?? ''}`}
+      className={`relative z-10 bg-[#f7f7f5] px-5 py-20 text-slate-950 sm:px-6 md:py-28 ${props.className ?? ''}`}
     >
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-20 flex flex-col items-center text-center'>
-          <p className='mb-3 text-3xl leading-tight font-bold tracking-tight text-orange-500 uppercase md:text-5xl'>
+          <p className='mb-3 text-xs font-bold tracking-[0.22em] text-orange-500 uppercase'>
             {t('Advantages')}
           </p>
           <h2 className='text-3xl leading-tight font-bold tracking-tight md:text-5xl'>
@@ -468,7 +473,19 @@ export function Features(props: FeaturesProps) {
           className='absolute inset-0 size-full object-cover'
         />
         <div className='absolute inset-0 bg-slate-950/40' />
-        <LetterTypewriterBlock />
+        <div className='relative flex flex-col items-center px-6 py-16 text-center sm:px-10 md:py-24'>
+          <h2 className='max-w-2xl text-3xl leading-tight font-bold tracking-tight text-white drop-shadow-md md:text-4xl'>
+            {t('To everyone building AI products')}
+          </h2>
+          <div className='mt-8 max-w-2xl space-y-6 text-sm leading-7 text-slate-100/90 md:text-base'>
+            {letterParagraphs.map((paragraph) => (
+              <p key={paragraph}>{t(paragraph)}</p>
+            ))}
+          </div>
+          <p className='mt-9 text-sm font-semibold text-white'>
+            WebChannel Team
+          </p>
+        </div>
       </AnimateInView>
     </section>
   )

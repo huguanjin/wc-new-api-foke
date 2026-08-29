@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -16,8 +17,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting/billing_setting"
-	"github.com/QuantumNous/new-api/utils"
 	"github.com/samber/lo"
 
 	"github.com/gin-gonic/gin"
@@ -132,9 +131,8 @@ func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 }
 
 func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycommon.RelayInfo) (taskErr *taskdto.TaskError) {
-	// ValidateMultipartDirect 负责解析并将原始 TaskSubmitReq 存入 context。
-	// 通义/快乐马官方参数可把文案放在 input/parameters，不强制顶层 prompt。
-	return relaycommon.ValidateMultipartDirect(c, info, relaycommon.WithoutRequiredPrompt())
+	// ValidateMultipartDirect 负责解析并将原始 TaskSubmitReq 存入 context
+	return relaycommon.ValidateMultipartDirect(c, info)
 }
 
 func (a *TaskAdaptor) BuildRequestURL(info *relaycommon.RelayInfo) (string, error) {
@@ -267,21 +265,6 @@ func isWan27I2VModel(model string) bool {
 	return strings.HasPrefix(model, "wan2.7-i2v")
 }
 
-func isHappyHorseModel(model string) bool {
-	return strings.Contains(strings.ToLower(model), "happyhorse")
-}
-
-const DefaultDuration = 5
-
-func applyHappyHorseResolution(aliReq *AliVideoRequest, req relaycommon.TaskSubmitReq) {
-	raw := strings.TrimSpace(req.Size)
-	if raw == "" {
-		raw = billing_setting.DefaultResolution
-	}
-	aliReq.Parameters.Size = ""
-	aliReq.Parameters.Resolution = billing_setting.FormatResolutionUpper(raw)
-}
-
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)
@@ -383,12 +366,7 @@ func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relay
 	}
 
 	// 处理分辨率映射
-	if req.Resolution != "" && req.Size == "" {
-		req.Size = req.Resolution
-	}
-	if isHappyHorseModel(aliReq.Model) {
-		applyHappyHorseResolution(aliReq, req)
-	} else if req.Size != "" {
+	if req.Size != "" {
 		// text to video size must be contained *
 		if strings.Contains(req.Model, "t2v") && !strings.Contains(req.Size, "*") {
 			return nil, fmt.Errorf("invalid size: %s, example: %s", req.Size, "1920*1080")
@@ -429,7 +407,19 @@ func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relay
 	}
 
 	// 处理时长
-	aliReq.Parameters.Duration = utils.ResolutionSeconds(req, DefaultDuration)
+	if req.Duration > 0 {
+		aliReq.Parameters.Duration = req.Duration
+	} else if req.Seconds != "" {
+		seconds, err := strconv.Atoi(req.Seconds)
+		if err != nil {
+			return nil, errors.Wrap(err, "convert seconds to int failed")
+		} else {
+			aliReq.Parameters.Duration = seconds
+		}
+	}
+	if aliReq.Parameters.Duration <= 0 {
+		aliReq.Parameters.Duration = 5 // 默认5秒
+	}
 
 	// 从 metadata 中提取额外参数
 	if req.Metadata != nil {
@@ -451,22 +441,12 @@ func (a *TaskAdaptor) convertToAliRequest(info *relaycommon.RelayInfo, req relay
 		return nil, err
 	}
 
-	if aliReq.Parameters.Duration <= 0 {
-		aliReq.Parameters.Duration = DefaultDuration
-	} else if aliReq.Parameters.Duration > relaycommon.MaxTaskDurationSeconds {
-		aliReq.Parameters.Duration = relaycommon.MaxTaskDurationSeconds
-	}
-
 	return aliReq, nil
 }
 
 // EstimateBilling 根据用户请求参数计算 OtherRatios（时长、分辨率等）。
-// 按分辨率计费走公共逻辑；否则保留通义硬编码分辨率倍率。
+// 在 ValidateRequestAndSetAction 之后、价格计算之前调用。
 func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInfo) map[string]float64 {
-	if ratios := utils.EstimateResolutionSeconds(c, info.OriginModelName, DefaultDuration); len(ratios) > 0 {
-		return ratios
-	}
-
 	taskReq, err := relaycommon.GetTaskRequest(c)
 	if err != nil {
 		return nil

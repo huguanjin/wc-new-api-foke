@@ -24,17 +24,10 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 import { getHomePageHeroContent } from '../../api'
-import {
-  DEFAULT_HERO_CONTENT,
-  DEFAULT_HERO_I18N_CONTENT,
-} from '../../hero-defaults'
-import {
-  getLocalizedText,
-  isChineseLanguage,
-  parseSlidesConfig,
-  resolveHomePageLocalizedContent,
-} from '../../lib/home-content'
-import type { HomePageHeroContentConfig } from '../../types'
+import type {
+  HomePageHeroContentConfig,
+  LocalizedText,
+} from '../../types'
 
 interface HeroProps {
   className?: string
@@ -79,31 +72,55 @@ const HERO_SLIDES: HeroSlide[] = [
 
 const ANNOUNCEMENT_BUTTON_COLORS = ['#F5C518', '#F5C518', '#F5C518']
 
+function isChineseLanguage(language: string): boolean {
+  return language.toLowerCase().startsWith('zh')
+}
+
+function parseHeroContentConfig(content: string | undefined): HomePageHeroContentConfig | null {
+  if (!content?.trim()) return null
+  try {
+    const parsed = JSON.parse(content) as unknown
+    if (!parsed || typeof parsed !== 'object') return null
+    const config = parsed as HomePageHeroContentConfig
+    return Array.isArray(config.slides) ? config : null
+  } catch {
+    return null
+  }
+}
+
+function getLocalizedText(
+  value: LocalizedText | undefined,
+  language: string,
+  fallback: string
+): string {
+  if (!value) return fallback
+  if (typeof value === 'string') return value || fallback
+
+  const normalizedLanguage = language.toLowerCase()
+  const primaryLanguage = normalizedLanguage.split('-')[0]
+  return (
+    value[normalizedLanguage] ||
+    value[primaryLanguage] ||
+    value.en ||
+    value.zh ||
+    fallback
+  )
+}
+
 function mergeHeroSlides(
   config: HomePageHeroContentConfig | null,
-  language: string,
-  translate: (key: string) => string
+  language: string
 ): HeroSlide[] {
-  return HERO_SLIDES.map((defaultSlide, index) => {
-    const defaultTitle = translate(defaultSlide.title)
-    const defaultDesc = translate(defaultSlide.desc)
-    const defaultEyebrow = translate(defaultSlide.eyebrow)
-    const customSlide = config?.slides?.[index]
+  if (!config?.slides) return HERO_SLIDES
 
-    if (!customSlide) {
-      return {
-        ...defaultSlide,
-        title: defaultTitle,
-        desc: defaultDesc,
-        eyebrow: defaultEyebrow,
-      }
-    }
+  return HERO_SLIDES.map((defaultSlide, index) => {
+    const customSlide = config.slides?.[index]
+    if (!customSlide) return defaultSlide
 
     return {
       ...defaultSlide,
-      title: getLocalizedText(customSlide.title, language, defaultTitle),
-      desc: getLocalizedText(customSlide.desc, language, defaultDesc),
-      eyebrow: defaultEyebrow,
+      title: getLocalizedText(customSlide.title, language, defaultSlide.title),
+      desc: getLocalizedText(customSlide.desc, language, defaultSlide.desc),
       model: customSlide.model || defaultSlide.model,
     }
   })
@@ -125,41 +142,25 @@ export function Hero(props: HeroProps) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [slideCycle, setSlideCycle] = useState(0)
   const [slideProgressStarted, setSlideProgressStarted] = useState(false)
-  const [slides, setSlides] = useState<HeroSlide[]>(() =>
-    mergeHeroSlides(null, i18n.language, t)
-  )
+  const [slides, setSlides] = useState<HeroSlide[]>(HERO_SLIDES)
 
   useEffect(() => {
     let mounted = true
 
     async function loadHeroContent() {
-      const applySlides = (content?: string) => {
-        if (!mounted) return
-        const config = parseSlidesConfig<HomePageHeroContentConfig>(content)
-        setSlides(mergeHeroSlides(config, i18n.language, t))
-      }
-
       try {
         const response = await getHomePageHeroContent()
         if (!mounted) return
 
-        const savedContent = resolveHomePageLocalizedContent(
-          i18n.language,
-          response.data?.content,
-          response.data?.i18nContent
-        )
-        const content =
-          savedContent ??
-          (isChineseLanguage(i18n.language)
-            ? DEFAULT_HERO_CONTENT
-            : DEFAULT_HERO_I18N_CONTENT)
-        applySlides(content)
+        const content = isChineseLanguage(i18n.language)
+          ? response.data?.content
+          : response.data?.i18nContent
+        const config = parseHeroContentConfig(content)
+        setSlides(mergeHeroSlides(config, i18n.language))
       } catch {
-        applySlides(
-          isChineseLanguage(i18n.language)
-            ? DEFAULT_HERO_CONTENT
-            : DEFAULT_HERO_I18N_CONTENT
-        )
+        if (mounted) {
+          setSlides(HERO_SLIDES)
+        }
       }
     }
 
@@ -168,7 +169,7 @@ export function Hero(props: HeroProps) {
     return () => {
       mounted = false
     }
-  }, [i18n.language, t])
+  }, [i18n.language])
 
   useEffect(() => {
     const color = ANNOUNCEMENT_BUTTON_COLORS[activeSlide] || ANNOUNCEMENT_BUTTON_COLORS[0]
@@ -235,7 +236,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '0ms' }}
           >
             <Sparkles className='size-4 text-yellow-300' />
-            {slide.eyebrow}
+            {t(slide.eyebrow)}
           </div>
 
           <h1
@@ -243,7 +244,7 @@ export function Hero(props: HeroProps) {
             className='hero-adaptive__title landing-animate-fade-up max-w-[10.5ch] pb-[0.1em] text-[clamp(2.5rem,6vw,5.75rem)] leading-[1.08] font-extrabold tracking-tight text-balance text-[#ececec] drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] lg:max-w-[11ch] xl:max-w-none xl:text-[clamp(2.6rem,6.8vw,5.75rem)]'
             style={{ animationDelay: '80ms' }}
           >
-            {slide.title}
+            {t(slide.title)}
           </h1>
 
           <p
@@ -251,7 +252,7 @@ export function Hero(props: HeroProps) {
             className='hero-adaptive__desc landing-animate-fade-up mt-6 max-w-2xl text-base leading-8 font-medium text-[#cccccc] opacity-0 drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)] md:text-xl'
             style={{ animationDelay: '160ms' }}
           >
-            {slide.desc}
+            {t(slide.desc)}
           </p>
 
           <div

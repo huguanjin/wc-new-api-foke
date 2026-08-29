@@ -65,7 +65,6 @@ import {
   type ModelRow,
 } from './model-pricing-snapshots'
 import { buildModelRatioColumns } from './model-ratio-table-columns'
-import { defaultResolutionPrice } from './resolution-pricing'
 
 type ModelRatioVisualEditorProps = {
   savedModelPrice: string
@@ -78,7 +77,6 @@ type ModelRatioVisualEditorProps = {
   savedAudioCompletionRatio: string
   savedBillingMode: string
   savedBillingExpr: string
-  savedResolutionPrice: string
   modelPrice: string
   modelRatio: string
   cacheRatio: string
@@ -89,14 +87,11 @@ type ModelRatioVisualEditorProps = {
   audioCompletionRatio: string
   billingMode: string
   billingExpr: string
-  resolutionPrice: string
   candidateModelNames?: string[]
   candidateModelsLoading?: boolean
   filterMode?: 'all' | 'unset'
   onChange: (field: string, value: string) => void
   onSave: () => void | Promise<void>
-  onPersist: () => void | Promise<void>
-  onEditorOpenChange?: (open: boolean) => void
   isSaving: boolean
 }
 
@@ -121,7 +116,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedAudioCompletionRatio,
     savedBillingMode,
     savedBillingExpr,
-    savedResolutionPrice,
     modelPrice,
     modelRatio,
     cacheRatio,
@@ -132,14 +126,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
     audioCompletionRatio,
     billingMode,
     billingExpr,
-    resolutionPrice,
     candidateModelNames,
     candidateModelsLoading,
     filterMode = 'all',
     onChange,
     onSave,
-    onPersist,
-    onEditorOpenChange,
     isSaving,
   },
   ref
@@ -147,8 +138,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
   const { t } = useTranslation()
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [editorOpen, setEditorOpenState] = useState(false)
-  const editorOpenRef = useRef(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [editData, setEditData] = useState<ModelRatioData | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -194,25 +184,12 @@ const ModelRatioVisualEditorComponent = forwardRef<
     }
   )
 
-  const setEditorOpen = useCallback(
-    (open: boolean) => {
-      editorOpenRef.current = open
-      setEditorOpenState(open)
-      onEditorOpenChange?.(open)
-    },
-    [onEditorOpenChange]
-  )
-
-  useEffect(() => {
-    editorOpenRef.current = editorOpen
-  }, [editorOpen])
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(columnVisibility))
   }, [columnVisibility])
 
-  const savedSnapshotInput = useMemo(
-    () => ({
+  const models = useMemo(() => {
+    const savedRows = buildModelSnapshots({
       modelPrice: savedModelPrice,
       modelRatio: savedModelRatio,
       cacheRatio: savedCacheRatio,
@@ -223,25 +200,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio: savedAudioCompletionRatio,
       billingMode: savedBillingMode,
       billingExpr: savedBillingExpr,
-      resolutionPrice: savedResolutionPrice,
-    }),
-    [
-      savedAudioCompletionRatio,
-      savedAudioRatio,
-      savedBillingExpr,
-      savedBillingMode,
-      savedCacheRatio,
-      savedCompletionRatio,
-      savedCreateCacheRatio,
-      savedImageRatio,
-      savedModelPrice,
-      savedModelRatio,
-      savedResolutionPrice,
-    ]
-  )
-
-  const draftSnapshotInput = useMemo(
-    () => ({
+    })
+    const draftRows = buildModelSnapshots({
       modelPrice,
       modelRatio,
       cacheRatio,
@@ -252,73 +212,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      resolutionPrice,
-    }),
-    [
-      audioCompletionRatio,
-      audioRatio,
-      billingExpr,
-      billingMode,
-      cacheRatio,
-      completionRatio,
-      createCacheRatio,
-      imageRatio,
-      modelPrice,
-      modelRatio,
-      resolutionPrice,
-    ]
-  )
+    })
 
-  const draftMatchesSaved = useMemo(
-    () =>
-      savedModelPrice === modelPrice &&
-      savedModelRatio === modelRatio &&
-      savedCacheRatio === cacheRatio &&
-      savedCreateCacheRatio === createCacheRatio &&
-      savedCompletionRatio === completionRatio &&
-      savedImageRatio === imageRatio &&
-      savedAudioRatio === audioRatio &&
-      savedAudioCompletionRatio === audioCompletionRatio &&
-      savedBillingMode === billingMode &&
-      savedBillingExpr === billingExpr &&
-      savedResolutionPrice === resolutionPrice,
-    [
-      audioCompletionRatio,
-      audioRatio,
-      billingExpr,
-      billingMode,
-      cacheRatio,
-      completionRatio,
-      createCacheRatio,
-      imageRatio,
-      modelPrice,
-      modelRatio,
-      resolutionPrice,
-      savedAudioCompletionRatio,
-      savedAudioRatio,
-      savedBillingExpr,
-      savedBillingMode,
-      savedCacheRatio,
-      savedCompletionRatio,
-      savedCreateCacheRatio,
-      savedImageRatio,
-      savedModelPrice,
-      savedModelRatio,
-      savedResolutionPrice,
-    ]
-  )
-
-  const savedRows = useMemo(
-    () => buildModelSnapshots(savedSnapshotInput),
-    [savedSnapshotInput]
-  )
-
-  const draftRows = useMemo(() => {
-    if (draftMatchesSaved) return savedRows
-    return buildModelSnapshots(draftSnapshotInput)
-  }, [draftMatchesSaved, draftSnapshotInput, savedRows])
-
-  const models = useMemo(() => {
     const savedByName = new Map(savedRows.map((row) => [row.name, row]))
     const draftByName = new Map(draftRows.map((row) => [row.name, row]))
     const modelNames =
@@ -347,7 +242,30 @@ const ModelRatioVisualEditorComponent = forwardRef<
       .filter((row) => !row.isDraftDeleted)
       .filter((row) => filterMode !== 'unset' || isBasePricingUnset(row.saved))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [candidateModelNames, draftRows, filterMode, savedRows])
+  }, [
+    candidateModelNames,
+    filterMode,
+    savedModelPrice,
+    savedModelRatio,
+    savedCacheRatio,
+    savedCreateCacheRatio,
+    savedCompletionRatio,
+    savedImageRatio,
+    savedAudioRatio,
+    savedAudioCompletionRatio,
+    savedBillingMode,
+    savedBillingExpr,
+    modelPrice,
+    modelRatio,
+    cacheRatio,
+    createCacheRatio,
+    completionRatio,
+    imageRatio,
+    audioRatio,
+    audioCompletionRatio,
+    billingMode,
+    billingExpr,
+  ])
 
   const modeCounts = useMemo(
     () =>
@@ -355,8 +273,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         (acc, model) => {
           const mode =
             model.billingMode === 'per-request' ||
-            model.billingMode === 'tiered_expr' ||
-            model.billingMode === 'resolution'
+            model.billingMode === 'tiered_expr'
               ? model.billingMode
               : 'per-token'
           acc[mode] += 1
@@ -366,11 +283,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
           'per-token': 0,
           'per-request': 0,
           tiered_expr: 0,
-          resolution: 0,
-        } as Record<
-          'per-token' | 'per-request' | 'tiered_expr' | 'resolution',
-          number
-        >
+        } as Record<'per-token' | 'per-request' | 'tiered_expr', number>
       ),
     [models]
   )
@@ -381,8 +294,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
       let editBillingMode: PricingMode = 'per-token'
       if (editableModel.billingMode === 'tiered_expr') {
         editBillingMode = 'tiered_expr'
-      } else if (editableModel.billingMode === 'resolution') {
-        editBillingMode = 'resolution'
       } else if (editableModel.price && editableModel.price !== '') {
         editBillingMode = 'per-request'
       }
@@ -399,7 +310,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingMode: editBillingMode,
         billingExpr: editableModel.billingExpr,
         requestRuleExpr: editableModel.requestRuleExpr,
-        resolutionPrices: editableModel.resolutionPrices,
       })
       setEditorOpen(true)
       if (isMobile) setSheetOpen(true)
@@ -429,9 +339,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
   )
 
   const handleDelete = useCallback(
-    async (name: string) => {
-      if (isSaving) return
-
+    (name: string) => {
       const priceMap = safeJsonParse<Record<string, number>>(modelPrice, {
         fallback: {},
         silent: true,
@@ -472,9 +380,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingExpr,
         { fallback: {}, silent: true }
       )
-      const resolutionPriceMap = safeJsonParse<
-        Record<string, Record<string, number>>
-      >(resolutionPrice, { fallback: {}, silent: true })
 
       delete priceMap[name]
       delete ratioMap[name]
@@ -486,7 +391,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
       delete audioCompletionMap[name]
       delete billingModeMap[name]
       delete billingExprMap[name]
-      delete resolutionPriceMap[name]
 
       onChange('ModelPrice', JSON.stringify(priceMap, null, 2))
       onChange('ModelRatio', JSON.stringify(ratioMap, null, 2))
@@ -507,22 +411,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.billing_expr',
         JSON.stringify(billingExprMap, null, 2)
       )
-      onChange(
-        'billing_setting.resolution_price',
-        JSON.stringify(resolutionPriceMap, null, 2)
-      )
 
       if (editData?.name === name) {
-        setEditorOpen(false)
         setEditData(null)
+        setEditorOpen(false)
         setSheetOpen(false)
-      }
-
-      try {
-        await onPersist()
-        toast.success(t('Model {{name}} removed', { name }))
-      } catch {
-        toast.error(t('Failed to save model prices'))
       }
     },
     [
@@ -536,13 +429,8 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      resolutionPrice,
       onChange,
       editData,
-      isSaving,
-      onPersist,
-      setEditorOpen,
-      t,
     ]
   )
 
@@ -551,10 +439,10 @@ const ModelRatioVisualEditorComponent = forwardRef<
       buildModelRatioColumns({
         onDelete: handleDelete,
         onEdit: handleEdit,
-        deleteDisabled: filterMode === 'unset' || isSaving,
+        deleteDisabled: filterMode === 'unset',
         t,
       }),
-    [handleEdit, handleDelete, filterMode, isSaving, t]
+    [handleEdit, handleDelete, filterMode, t]
   )
 
   const ensurePageInRange = useCallback((pageCount: number) => {
@@ -577,7 +465,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
     pagination,
     rowSelection,
     enableRowSelection: true,
-    withFacetedRowModel: false,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: handleGlobalFilterChange,
@@ -633,9 +520,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingExpr,
         { fallback: {}, silent: true }
       )
-      const resolutionPriceMap = safeJsonParse<
-        Record<string, Record<string, number>>
-      >(resolutionPrice, { fallback: {}, silent: true })
 
       const setIfPresent = (
         target: Record<string, number>,
@@ -643,7 +527,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         value: string | undefined
       ) => {
         if (!value || value === '') return
-        const parsed = Number.parseFloat(value)
+        const parsed = parseFloat(value)
         if (Number.isFinite(parsed)) target[name] = parsed
       }
 
@@ -658,7 +542,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         delete audioCompletionMap[name]
         delete billingModeMap[name]
         delete billingExprMap[name]
-        delete resolutionPriceMap[name]
 
         if (data.billingMode === 'tiered_expr') {
           const combined = combineBillingExpr(
@@ -681,15 +564,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
           setIfPresent(imageMap, name, data.imageRatio)
           setIfPresent(audioMap, name, data.audioRatio)
           setIfPresent(audioCompletionMap, name, data.audioCompletionRatio)
-        } else if (data.billingMode === 'resolution') {
-          billingModeMap[name] = 'resolution'
-          if (data.resolutionPrices) {
-            resolutionPriceMap[name] = data.resolutionPrices
-            const fallbackPrice = defaultResolutionPrice(data.resolutionPrices)
-            if (fallbackPrice !== undefined) {
-              priceMap[name] = fallbackPrice
-            }
-          }
         } else if (data.price && data.price !== '') {
           setIfPresent(priceMap, name, data.price)
         } else {
@@ -722,10 +596,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.billing_expr',
         JSON.stringify(billingExprMap, null, 2)
       )
-      onChange(
-        'billing_setting.resolution_price',
-        JSON.stringify(resolutionPriceMap, null, 2)
-      )
     },
     [
       modelPrice,
@@ -738,7 +608,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
       audioCompletionRatio,
       billingMode,
       billingExpr,
-      resolutionPrice,
       onChange,
     ]
   )
@@ -784,7 +653,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     ref,
     () => ({
       commitOpenEditor: async () => {
-        if (!editorOpenRef.current || !editorPanelRef.current) return true
+        if (!editorOpen || !editorPanelRef.current) return true
         const data = await editorPanelRef.current.commitDraft()
         if (!data) return false
         persistPricingData(data)
@@ -792,7 +661,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
         return true
       },
     }),
-    [persistPricingData]
+    [editorOpen, persistPricingData]
   )
 
   const hasRows = table.getRowModel().rows.length > 0
@@ -833,11 +702,6 @@ const ModelRatioVisualEditorComponent = forwardRef<
                     label: 'Expression',
                     value: 'tiered_expr',
                     count: modeCounts.tiered_expr,
-                  },
-                  {
-                    label: 'By resolution',
-                    value: 'resolution',
-                    count: modeCounts.resolution,
                   },
                 ],
               },
@@ -978,7 +842,6 @@ export const ModelRatioVisualEditor = memo(
         nextProps.savedAudioCompletionRatio &&
       prevProps.savedBillingMode === nextProps.savedBillingMode &&
       prevProps.savedBillingExpr === nextProps.savedBillingExpr &&
-      prevProps.savedResolutionPrice === nextProps.savedResolutionPrice &&
       prevProps.modelPrice === nextProps.modelPrice &&
       prevProps.modelRatio === nextProps.modelRatio &&
       prevProps.cacheRatio === nextProps.cacheRatio &&
@@ -989,14 +852,11 @@ export const ModelRatioVisualEditor = memo(
       prevProps.audioCompletionRatio === nextProps.audioCompletionRatio &&
       prevProps.billingMode === nextProps.billingMode &&
       prevProps.billingExpr === nextProps.billingExpr &&
-      prevProps.resolutionPrice === nextProps.resolutionPrice &&
       prevProps.candidateModelNames === nextProps.candidateModelNames &&
       prevProps.candidateModelsLoading === nextProps.candidateModelsLoading &&
       prevProps.filterMode === nextProps.filterMode &&
       prevProps.onChange === nextProps.onChange &&
       prevProps.onSave === nextProps.onSave &&
-      prevProps.onPersist === nextProps.onPersist &&
-      prevProps.onEditorOpenChange === nextProps.onEditorOpenChange &&
       prevProps.isSaving === nextProps.isSaving
     )
   }

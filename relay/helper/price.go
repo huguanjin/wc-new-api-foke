@@ -187,10 +187,6 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hosttypes.PriceData, error) {
 	groupRatioInfo := HandleGroupRatio(c, info)
 
-	if billing_setting.GetBillingMode(info.OriginModelName) == billing_setting.BillingModeResolution {
-		return modelPriceHelperResolution(c, info, groupRatioInfo)
-	}
-
 	modelPrice, success := ratio_setting.GetModelPrice(info.OriginModelName, true)
 	usePrice := success
 	var modelRatio float64
@@ -263,48 +259,11 @@ func HasModelBillingConfig(modelName string) bool {
 	if _, ok, _ := ratio_setting.GetModelRatio(modelName); ok {
 		return true
 	}
-	mode := billing_setting.GetBillingMode(modelName)
-	if mode == billing_setting.BillingModeResolution {
-		return billing_setting.HasResolutionPrice(modelName)
-	}
-	if mode != billing_setting.BillingModeTieredExpr {
+	if billing_setting.GetBillingMode(modelName) != billing_setting.BillingModeTieredExpr {
 		return false
 	}
 	expr, ok := billing_setting.GetBillingExpr(modelName)
 	return ok && strings.TrimSpace(expr) != ""
-}
-
-func modelPriceHelperResolution(c *gin.Context, info *relaycommon.RelayInfo, groupRatioInfo hosttypes.GroupRatioInfo) (hosttypes.PriceData, error) {
-	resolution := billing_setting.DefaultResolution
-	if req, err := relaycommon.GetTaskRequest(c); err == nil {
-		resolution = relaycommon.TaskBillingResolution(req)
-	}
-	modelPrice, ok := billing_setting.GetResolutionPrice(info.OriginModelName, resolution)
-	if !ok {
-		return hosttypes.PriceData{}, modelPriceNotConfiguredError(info.OriginModelName, info.UserId)
-	}
-
-	quota, err := common.QuotaFromFloatStrict(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
-	if err != nil {
-		return hosttypes.PriceData{}, err
-	}
-
-	freeModel := false
-	if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
-		if groupRatioInfo.GroupRatio == 0 || modelPrice == 0 {
-			quota = 0
-			freeModel = true
-		}
-	}
-
-	return hosttypes.PriceData{
-		FreeModel:      freeModel,
-		ModelPrice:     modelPrice,
-		UsePrice:       true,
-		Quota:          quota,
-		Resolution:     resolution,
-		GroupRatioInfo: groupRatioInfo,
-	}, nil
 }
 
 func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta, groupRatioInfo hosttypes.GroupRatioInfo) (hosttypes.PriceData, error) {

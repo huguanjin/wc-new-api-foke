@@ -140,32 +140,6 @@ func validatePrompt(prompt string) *dto.TaskError {
 	return nil
 }
 
-type taskRequestValidationConfig struct {
-	skipPrompt bool
-}
-
-// TaskRequestValidationOption customizes ValidateBasicTaskRequest /
-// ValidateMultipartDirect behavior.
-type TaskRequestValidationOption func(*taskRequestValidationConfig)
-
-// WithoutRequiredPrompt skips the top-level prompt presence check. Used by
-// video providers whose official payloads put text in content/metadata instead.
-func WithoutRequiredPrompt() TaskRequestValidationOption {
-	return func(cfg *taskRequestValidationConfig) {
-		cfg.skipPrompt = true
-	}
-}
-
-func applyTaskRequestValidationOptions(opts []TaskRequestValidationOption) taskRequestValidationConfig {
-	var cfg taskRequestValidationConfig
-	for _, opt := range opts {
-		if opt != nil {
-			opt(&cfg)
-		}
-	}
-	return cfg
-}
-
 // MaxTaskDurationSeconds caps user-supplied video duration. Duration is used
 // as a billing multiplier (OtherRatio "seconds"); an unbounded value could
 // overflow quota calculation into a negative charge.
@@ -194,9 +168,8 @@ func validateMultipartTaskRequest(c *gin.Context, info *RelayInfo, action string
 		Model:    formData.Get("model"),
 		Mode:     formData.Get("mode"),
 		Image:    formData.Get("image"),
-		Size:       formData.Get("size"),
-		Resolution: formData.Get("resolution"),
-		Metadata:   make(map[string]interface{}),
+		Size:     formData.Get("size"),
+		Metadata: make(map[string]interface{}),
 	}
 
 	if durationStr := formData.Get("seconds"); durationStr != "" {
@@ -223,8 +196,7 @@ func validateMultipartTaskRequest(c *gin.Context, info *RelayInfo, action string
 	return req, nil
 }
 
-func ValidateMultipartDirect(c *gin.Context, info *RelayInfo, opts ...TaskRequestValidationOption) *dto.TaskError {
-	cfg := applyTaskRequestValidationOptions(opts)
+func ValidateMultipartDirect(c *gin.Context, info *RelayInfo) *dto.TaskError {
 	var prompt string
 	var model string
 	var seconds int
@@ -258,10 +230,8 @@ func ValidateMultipartDirect(c *gin.Context, info *RelayInfo, opts ...TaskReques
 		hasInputReference = true
 	}
 
-	if !cfg.skipPrompt {
-		if taskErr := validatePrompt(prompt); taskErr != nil {
-			return taskErr
-		}
+	if taskErr := validatePrompt(prompt); taskErr != nil {
+		return taskErr
 	}
 
 	if taskErr := validateTaskDurationBounds(req); taskErr != nil {
@@ -304,16 +274,13 @@ func isKnownTaskField(field string) bool {
 		"image":           true,
 		"images":          true,
 		"size":            true,
-		"resolution":      true,
 		"duration":        true,
-		"seconds":         true,
 		"input_reference": true, // Sora 特有字段
 	}
 	return knownFields[field]
 }
 
-func ValidateBasicTaskRequest(c *gin.Context, info *RelayInfo, action string, opts ...TaskRequestValidationOption) *dto.TaskError {
-	cfg := applyTaskRequestValidationOptions(opts)
+func ValidateBasicTaskRequest(c *gin.Context, info *RelayInfo, action string) *dto.TaskError {
 	var err error
 	contentType := c.GetHeader("Content-Type")
 	var req TaskSubmitReq
@@ -328,10 +295,8 @@ func ValidateBasicTaskRequest(c *gin.Context, info *RelayInfo, action string, op
 		return createTaskError(err, "invalid_request", http.StatusBadRequest, true)
 	}
 
-	if !cfg.skipPrompt {
-		if taskErr := validatePrompt(req.Prompt); taskErr != nil {
-			return taskErr
-		}
+	if taskErr := validatePrompt(req.Prompt); taskErr != nil {
+		return taskErr
 	}
 
 	if taskErr := validateTaskDurationBounds(req); taskErr != nil {

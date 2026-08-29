@@ -35,7 +35,6 @@ type Pricing struct {
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
-	ResolutionPrice        map[string]float64      `json:"resolution_price,omitempty"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
 }
 
@@ -405,11 +404,6 @@ func updatePricing() {
 			if expr, ok := billing_setting.GetBillingExpr(model); ok && strings.TrimSpace(expr) != "" {
 				pricing.BillingMode = billingMode
 				pricing.BillingExpr = expr
-			}
-		} else if billingMode == billing_setting.BillingModeResolution {
-			if prices := billing_setting.GetResolutionPrices(model); len(prices) > 0 {
-				pricing.BillingMode = billingMode
-				pricing.ResolutionPrice = prices
 			}
 		}
 		pricingMap = append(pricingMap, pricing)

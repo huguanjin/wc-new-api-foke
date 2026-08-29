@@ -26,8 +26,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting/billing_setting"
-	"github.com/QuantumNous/new-api/utils"
 )
 
 // ============================
@@ -69,7 +67,6 @@ type requestPayload struct {
 	ModelName      string         `json:"model_name,omitempty"`
 	Model          string         `json:"model,omitempty"` // Compatible with upstreams that only recognize "model"
 	CfgScale       float64        `json:"cfg_scale,omitempty"`
-	Resolution     string         `json:"resolution,omitempty"`
 	StaticMask     string         `json:"static_mask,omitempty"`
 	DynamicMasks   []DynamicMask  `json:"dynamic_masks,omitempty"`
 	CameraControl  *CameraControl `json:"camera_control,omitempty"`
@@ -122,8 +119,6 @@ type TaskAdaptor struct {
 	baseURL     string
 }
 
-const DefaultDuration = 5
-
 func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 	a.ChannelType = info.ChannelType
 	a.baseURL = info.ChannelBaseUrl
@@ -135,7 +130,7 @@ func (a *TaskAdaptor) Init(info *relaycommon.RelayInfo) {
 // ValidateRequestAndSetAction parses body, validates fields and sets default action.
 func (a *TaskAdaptor) ValidateRequestAndSetAction(c *gin.Context, info *relaycommon.RelayInfo) (taskErr *taskdto.TaskError) {
 	// Use the standard validation method for TaskSubmitReq
-	return relaycommon.ValidateBasicTaskRequest(c, info, constant.TaskActionGenerate, relaycommon.WithoutRequiredPrompt())
+	return relaycommon.ValidateBasicTaskRequest(c, info, constant.TaskActionGenerate)
 }
 
 // BuildRequestURL constructs the upstream URL.
@@ -265,11 +260,6 @@ func (a *TaskAdaptor) GetChannelName() string {
 	return "kling"
 }
 
-// EstimateBilling multiplies the resolution unit price by video seconds.
-func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInfo) map[string]float64 {
-	return utils.EstimateResolutionSeconds(c, info.OriginModelName, DefaultDuration)
-}
-
 // ============================
 // helpers
 // ============================
@@ -279,9 +269,8 @@ func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq, in
 		Prompt:         req.Prompt,
 		Image:          req.Image,
 		Mode:           taskcommon.DefaultString(req.Mode, "std"),
-		Duration:       fmt.Sprintf("%d", utils.ResolutionSeconds(*req, DefaultDuration)),
+		Duration:       fmt.Sprintf("%d", taskcommon.DefaultInt(req.Duration, 5)),
 		AspectRatio:    a.getAspectRatio(req.Size),
-		Resolution:     req.Resolution,
 		ModelName:      info.UpstreamModelName,
 		Model:          info.UpstreamModelName,
 		CfgScale:       0.5,
@@ -297,10 +286,6 @@ func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq, in
 	}
 	if err := taskcommon.UnmarshalMetadata(req.Metadata, &r); err != nil {
 		return nil, errors.Wrap(err, "unmarshal metadata failed")
-	}
-	// Kling API docs commonly use lowercase: 720p / 1080p.
-	if strings.TrimSpace(r.Resolution) != "" {
-		r.Resolution = billing_setting.FormatResolutionLower(r.Resolution)
 	}
 	return &r, nil
 }

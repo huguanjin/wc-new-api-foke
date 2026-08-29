@@ -93,10 +93,7 @@ For commercial licensing, please contact support@quantumnous.com
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Light tokens also live on `.theme-light` so white surfaces such as the
- * login page can keep readable contrast when `html` is in dark mode. */
-:root,
-.theme-light {
+:root {
   --radius: 1rem;
   --app-header-height: 3rem;
   /* Static build-channel fallback consumed when JS hasn't booted yet. */
@@ -179,10 +176,6 @@ For commercial licensing, please contact support@quantumnous.com
     var(--foreground) 16%,
     var(--background)
   );
-}
-
-.theme-light {
-  color-scheme: light;
 }
 
 .dark {

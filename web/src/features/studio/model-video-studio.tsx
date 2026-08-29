@@ -22,7 +22,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
-  Clapperboard,
   Download,
   Loader2,
   Wand2,
@@ -44,15 +43,6 @@ import type { VideoTaskStatus } from '@/features/video/types'
 
 import type { StudioModel } from './models'
 
-// Template slots shown before the user generates anything. Replace the `src`
-// values later with your own template thumbnails.
-const TEMPLATE_SLOTS: { id: string; src?: string }[] = [
-  { id: 'tpl-1' },
-  { id: 'tpl-2' },
-  { id: 'tpl-3' },
-  { id: 'tpl-4' },
-]
-
 const MAX_VIDEO_DURATION = 15
 
 const ASPECT_RATIOS = [
@@ -62,8 +52,8 @@ const ASPECT_RATIOS = [
 ] as const
 
 const RESOLUTIONS = [
-  { value: '720P', label: '720P', hint: 'Balanced preview quality' },
-  { value: '1080P', label: '1080P', hint: 'Sharper output preview' },
+  { value: '720p', label: '720p', hint: 'Balanced preview quality' },
+  { value: '1080p', label: '1080p', hint: 'Sharper output preview' },
 ] as const
 
 const VIDEO_STATUS_KEYS: Record<VideoTaskStatus, string> = {
@@ -87,12 +77,12 @@ export function ModelVideoStudio({ model }: ModelVideoStudioProps) {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.auth.user)
 
-  const [prompt, setPrompt] = useState<string>(model.defaultPrompt)
+  const [prompt, setPrompt] = useState<string>(t(model.defaultPrompt))
   const [duration, setDuration] = useState<string>('')
   const [aspectRatio, setAspectRatio] =
     useState<(typeof ASPECT_RATIOS)[number]['value']>('16:9')
   const [resolution, setResolution] =
-    useState<(typeof RESOLUTIONS)[number]['value']>('720P')
+    useState<(typeof RESOLUTIONS)[number]['value']>('720p')
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<VideoTaskStatus | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
@@ -374,23 +364,12 @@ export function ModelVideoStudio({ model }: ModelVideoStudioProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className='grid grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-4'>
-                    {TEMPLATE_SLOTS.map((slot) => (
-                      <div
-                        key={slot.id}
-                        className='bg-muted/40 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-dashed'
-                      >
-                        {slot.src ? (
-                          <img
-                            src={slot.src}
-                            alt={t('Template')}
-                            className='h-full w-full object-cover'
-                          />
-                        ) : (
-                          <Clapperboard className='text-muted-foreground/50 h-8 w-8' />
-                        )}
-                      </div>
-                    ))}
+                  <div className='overflow-hidden rounded-lg border'>
+                    <img
+                      src={model.cover}
+                      alt={model.label}
+                      className='aspect-video h-auto w-full object-cover'
+                    />
                   </div>
                 )}
               </CardContent>
