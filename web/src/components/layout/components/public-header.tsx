@@ -22,9 +22,9 @@ import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { NotificationDialog } from '@/components/notification-dialog'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { ThemeSwitch } from '@/components/theme-switch'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNotifications } from '@/hooks/use-notifications'
@@ -64,6 +64,7 @@ export interface PublicHeaderProps {
 export function PublicHeader(props: PublicHeaderProps) {
   const {
     navLinks = defaultTopNavLinks,
+    showThemeSwitch = true,
     showLanguageSwitcher = true,
     logo: customLogo,
     siteName: customSiteName,
@@ -88,13 +89,9 @@ export function PublicHeader(props: PublicHeaderProps) {
     logoLoaded,
   } = useSystemConfig()
   const dynamicLinks = useTopNavLinks()
+  const notifications = useNotifications()
   const routerState = useRouterState()
   const pathname = routerState.location.pathname
-  const isHomeHero = pathname === '/' && !scrolled
-  const shouldAutoOpenNotificationDialog = showNotifications && pathname === '/'
-  const notifications = useNotifications({
-    autoOpenDialog: shouldAutoOpenNotificationDialog,
-  })
 
   const user = auth.user
   const isAuthenticated = !!user
@@ -182,33 +179,23 @@ export function PublicHeader(props: PublicHeaderProps) {
         <div
           className={cn(
             'pointer-events-auto mx-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
-            scrolled ? 'max-w-[1280px] px-4 pt-3' : 'max-w-[1280px] px-4 pt-0 md:px-6'
+            scrolled ? 'max-w-[52rem] px-3 pt-3' : 'max-w-7xl px-4 pt-0 md:px-6'
           )}
         >
           <nav
             className={cn(
               'flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
               scrolled
-                ? 'bg-background/60 ring-border/50 h-11 rounded-2xl pr-1.5 pl-4 shadow-[0_2px_16px_-6px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.02)] ring-[0.5px] backdrop-blur-2xl dark:shadow-[0_2px_16px_-6px_rgba(0,0,0,0.4)]'
-                : 'h-14 px-2',
-              isHomeHero &&
-                'rounded-2xl bg-slate-950/18 text-white shadow-[0_18px_60px_-38px_rgba(15,23,42,0.75)] ring-1 ring-white/8 backdrop-blur-sm'
+                ? 'bg-background/60 ring-border/50 h-12 rounded-2xl pr-1.5 pl-4 shadow-[0_2px_16px_-6px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.02)] ring-[0.5px] backdrop-blur-2xl dark:shadow-[0_2px_16px_-6px_rgba(0,0,0,0.4)]'
+                : 'h-16 px-2'
             )}
           >
             {/* Logo */}
             <Link
               to={homeUrl}
-              className={cn(
-                'group flex shrink-0 items-center gap-2.5 transition-colors duration-200',
-                isHomeHero ? 'text-white' : 'text-foreground'
-              )}
+              className='group flex shrink-0 items-center gap-2.5'
             >
-              <div
-                className={cn(
-                  'flex shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:rotate-3',
-                  scrolled ? 'size-10' : 'size-12'
-                )}
-              >
+              <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
                 {loading ? (
                   <Skeleton className='size-full rounded-lg' />
                 ) : customLogo ? (
@@ -222,32 +209,15 @@ export function PublicHeader(props: PublicHeaderProps) {
                   />
                 )}
               </div>
-              <span
-                className={cn(
-                  'font-semibold tracking-tight',
-                  isHomeHero
-                    ? 'text-base lg:text-lg xl:text-xl'
-                    : 'text-sm lg:text-base xl:text-lg'
-                )}
-              >
+              <span className='text-sm font-semibold tracking-tight'>
                 {loading ? <Skeleton className='h-4 w-16' /> : displaySiteName}
               </span>
             </Link>
 
             {/* Desktop nav */}
-            <div className='hidden items-center gap-0.5 sm:flex lg:gap-1'>
+            <div className='hidden items-center gap-0.5 sm:flex'>
               {links.map((link, i) => {
                 const isActive = pathname === link.href
-                const linkClassName = cn(
-                  'relative rounded-full px-3 py-1.5 font-medium transition-all duration-200 after:absolute after:right-3 after:-bottom-0.5 after:left-3 after:h-px after:origin-center after:scale-x-0 after:bg-current after:opacity-0 after:transition-all after:duration-200 focus-visible:outline-none focus-visible:ring-2 lg:px-3.5',
-                  isHomeHero
-                    ? 'text-sm lg:text-base xl:text-lg text-white/78 hover:bg-transparent hover:text-white hover:after:scale-x-100 hover:after:opacity-70 focus-visible:ring-white/40'
-                    : 'text-xs lg:text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring/50',
-                  isActive &&
-                    (isHomeHero
-                      ? 'bg-transparent text-white after:scale-x-100 after:opacity-80'
-                      : 'bg-muted text-foreground')
-                )
                 if (link.external) {
                   return (
                     <a
@@ -259,7 +229,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                       tabIndex={link.disabled ? -1 : undefined}
                       onClick={(event) => handleNavLinkClick(event, link)}
                       className={cn(
-                        linkClassName,
+                        'text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
                         link.disabled && 'pointer-events-none opacity-50'
                       )}
                     >
@@ -274,7 +244,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
                     className={cn(
-                      linkClassName,
+                      'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
+                      isActive
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
                       link.disabled && 'pointer-events-none opacity-50'
                     )}
                   >
@@ -283,25 +256,14 @@ export function PublicHeader(props: PublicHeaderProps) {
                 )
               })}
 
-              {(showLanguageSwitcher || showNotifications) && (
-                <div
-                  className={cn(
-                    'mx-2 h-4 w-px',
-                    isHomeHero ? 'bg-white/25' : 'bg-border/30'
-                  )}
-                />
+              {(showLanguageSwitcher ||
+                showThemeSwitch ||
+                showNotifications) && (
+                <div className='bg-border/40 mx-2 h-4 w-px' />
               )}
 
-              {showLanguageSwitcher && (
-                <div
-                  className={cn(
-                    isHomeHero &&
-                      '[&_button]:text-white [&_button]:hover:bg-transparent [&_button]:hover:text-white [&_button]:aria-expanded:bg-transparent [&_button]:aria-expanded:text-white'
-                  )}
-                >
-                  <LanguageSwitcher />
-                </div>
-              )}
+              {showLanguageSwitcher && <LanguageSwitcher />}
+              {showThemeSwitch && <ThemeSwitch />}
               {showNotifications && (
                 <NotificationPopover
                   open={notifications.popoverOpen}
@@ -312,22 +274,12 @@ export function PublicHeader(props: PublicHeaderProps) {
                   notice={notifications.notice}
                   announcements={notifications.announcements}
                   loading={notifications.loading}
-                  className={
-                    isHomeHero
-                      ? 'rounded-full text-white hover:bg-transparent hover:text-white'
-                      : 'rounded-full'
-                  }
                 />
               )}
 
               {showAuthButtons && (
                 <>
-                  <div
-                    className={cn(
-                      'mx-1 h-4 w-px',
-                      isHomeHero ? 'bg-white/25' : 'bg-border/40'
-                    )}
-                  />
+                  <div className='bg-border/40 mx-1 h-4 w-px' />
                   {loading ? (
                     <Skeleton className='h-8 w-20 rounded-lg' />
                   ) : isAuthenticated ? (
@@ -335,11 +287,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                   ) : (
                     <Button
                       size='sm'
-                      className={cn(
-                        'h-8 rounded-full px-3.5 text-xs font-medium transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
-                        isHomeHero &&
-                          'bg-white text-slate-950 shadow-sm [a]:hover:bg-white [a]:active:bg-white hover:text-slate-950 hover:shadow-[0_10px_28px_-12px_rgba(15,23,42,0.45)] focus-visible:ring-white/35'
-                      )}
+                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
                       render={<Link to='/sign-in' />}
                     >
                       {t('Sign in')}
@@ -351,16 +299,7 @@ export function PublicHeader(props: PublicHeaderProps) {
 
             {/* Mobile: compact actions + hamburger */}
             <div className='flex items-center gap-2 sm:hidden'>
-              {showLanguageSwitcher && (
-                <div
-                  className={cn(
-                    isHomeHero &&
-                      '[&_button]:text-white [&_button]:hover:bg-transparent [&_button]:hover:text-white [&_button]:aria-expanded:bg-transparent [&_button]:aria-expanded:text-white'
-                  )}
-                >
-                  <LanguageSwitcher />
-                </div>
-              )}
+              {showThemeSwitch && <ThemeSwitch />}
               {showAuthButtons && !loading && isAuthenticated && (
                 <ProfileDropdown />
               )}
@@ -368,10 +307,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                 type='button'
                 variant='ghost'
                 size='icon'
-                className={cn(
-                  'size-9 rounded-full',
-                  isHomeHero && 'text-white hover:bg-transparent hover:text-white'
-                )}
+                className='size-9'
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label={t('Toggle navigation menu')}
               >
@@ -415,7 +351,7 @@ export function PublicHeader(props: PublicHeaderProps) {
             {links.map((link, i) => {
               const isActive = pathname === link.href
               const linkClassName = cn(
-                'flex items-center gap-3 py-3 text-lg font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                'flex items-center gap-3 py-3 text-base font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
                 mobileOpen
                   ? 'translate-y-0 opacity-100'
                   : 'translate-y-4 opacity-0',
@@ -478,19 +414,6 @@ export function PublicHeader(props: PublicHeaderProps) {
           </div>
         </div>
       </div>
-
-      {shouldAutoOpenNotificationDialog && (
-        <NotificationDialog
-          open={notifications.dialogOpen}
-          onOpenChange={notifications.setDialogOpen}
-          activeTab={notifications.activeTab}
-          onTabChange={notifications.setActiveTab}
-          notice={notifications.notice}
-          announcements={notifications.announcements}
-          loading={notifications.loading}
-          onCloseToday={notifications.closeToday}
-        />
-      )}
 
       <Dialog
         open={!!authPromptTarget}

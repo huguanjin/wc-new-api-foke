@@ -28,7 +28,6 @@ const STATUS_RELATED_KEYS = new Set([
   'HeaderNavModules',
   'SidebarModulesAdmin',
   'Notice',
-  'NoticeI18nContent',
   'LogConsumeEnabled',
   'QuotaPerUnit',
   'USDExchangeRate',

@@ -20,9 +20,14 @@ import { useQuery } from '@tanstack/react-query'
 
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
+import { canManageApiKeys } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 export async function fetchActiveChatKey() {
+  const role = useAuthStore.getState().auth.user?.role
+  if (!canManageApiKeys(role)) {
+    throw new Error('No enabled API keys found. Create or enable one first.')
+  }
   const result = await getApiKeys({ p: 1, size: 50 })
   if (!result.success) {
     throw new Error(result.message || 'Failed to load API keys')
@@ -47,11 +52,12 @@ export async function fetchActiveChatKey() {
  */
 export function useActiveChatKey(enabled: boolean) {
   const userId = useAuthStore((state) => state.auth.user?.id)
+  const role = useAuthStore((state) => state.auth.user?.role)
 
   return useQuery({
     queryKey: ['chat-active-key', userId],
     queryFn: fetchActiveChatKey,
-    enabled: enabled && Boolean(userId),
+    enabled: enabled && Boolean(userId) && canManageApiKeys(role),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

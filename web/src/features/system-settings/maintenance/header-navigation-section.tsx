@@ -34,10 +34,9 @@ import { Switch } from '@/components/ui/switch'
 
 import {
   SettingsControlChildren,
-  SettingsControlGroup,
   SettingsForm,
-  SettingsFormGrid,
   SettingsSwitchContent,
+  SettingsControlGroup,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
@@ -56,10 +55,6 @@ const headerNavSchema = z.object({
   pricingRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
-  photoEnabled: z.boolean(),
-  photoRequireAuth: z.boolean(),
-  studioEnabled: z.boolean(),
-  studioRequireAuth: z.boolean(),
   docs: z.boolean(),
   about: z.boolean(),
 })
@@ -70,9 +65,6 @@ type HeaderNavigationSectionProps = {
   config: HeaderNavModulesConfig
   initialSerialized: string
 }
-
-const formLabelClassName = 'break-words'
-const formDescriptionClassName = 'leading-relaxed break-words'
 
 const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
   home:
@@ -97,22 +89,6 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.rankings?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.rankings.requireAuth
       : Boolean(config.rankings.requireAuth),
-  photoEnabled:
-    config.photo?.enabled === undefined
-      ? HEADER_NAV_DEFAULT.photo.enabled
-      : Boolean(config.photo.enabled),
-  photoRequireAuth:
-    config.photo?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.photo.requireAuth
-      : Boolean(config.photo.requireAuth),
-  studioEnabled:
-    config.studio?.enabled === undefined
-      ? HEADER_NAV_DEFAULT.studio.enabled
-      : Boolean(config.studio.enabled),
-  studioRequireAuth:
-    config.studio?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.studio.requireAuth
-      : Boolean(config.studio.requireAuth),
   docs:
     config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
@@ -155,16 +131,6 @@ export function HeaderNavigationSection({
         enabled: values.rankingsEnabled,
         requireAuth: values.rankingsRequireAuth,
       },
-      photo: {
-        ...(config.photo ?? HEADER_NAV_DEFAULT.photo),
-        enabled: values.photoEnabled,
-        requireAuth: values.photoRequireAuth,
-      },
-      studio: {
-        ...(config.studio ?? HEADER_NAV_DEFAULT.studio),
-        enabled: values.studioEnabled,
-        requireAuth: values.studioRequireAuth,
-      },
     }
 
     const serialized = serializeHeaderNavModules(payload)
@@ -190,33 +156,29 @@ export function HeaderNavigationSection({
     {
       key: 'home',
       title: t('Home'),
-      description: t('Top nav "Home" entry, links to the landing page (/).'),
+      description: t('Landing page with system overview.'),
     },
     {
       key: 'console',
       title: t('Console'),
-      description: t('Top nav "Console" entry, links to the dashboard (/dashboard).'),
+      description: t('User dashboard and quota controls.'),
     },
     {
       key: 'docs',
       title: t('Docs'),
-      description: t('Top nav "Docs" entry, links to documentation (/docs or external link).'),
+      description: t('Documentation or external knowledge base.'),
     },
     {
       key: 'about',
       title: t('About'),
-      description: t('Top nav "About" entry, links to the about page (/about).'),
+      description: t('Static page describing the platform.'),
     },
   ]
 
   const accessModules: Array<{
     enabledKey: keyof HeaderNavFormValues
     requireAuthKey: keyof HeaderNavFormValues
-    requireAuthDependsOn:
-      | 'pricingEnabled'
-      | 'rankingsEnabled'
-      | 'photoEnabled'
-      | 'studioEnabled'
+    requireAuthDependsOn: 'pricingEnabled' | 'rankingsEnabled'
     title: string
     description: string
     requireAuthTitle: string
@@ -227,7 +189,7 @@ export function HeaderNavigationSection({
       requireAuthKey: 'pricingRequireAuth',
       requireAuthDependsOn: 'pricingEnabled',
       title: t('Model Square'),
-      description: t('Top nav "Model Square" entry, links to the pricing page (/pricing).'),
+      description: t('Public model catalog and pricing page.'),
       requireAuthTitle: t('Require login to view models'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the pricing directory.'
@@ -238,32 +200,10 @@ export function HeaderNavigationSection({
       requireAuthKey: 'rankingsRequireAuth',
       requireAuthDependsOn: 'rankingsEnabled',
       title: t('Rankings'),
-      description: t('Top nav "Rankings" entry, links to the rankings page (/rankings).'),
+      description: t('Public rankings page based on live usage data.'),
       requireAuthTitle: t('Require login to view rankings'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the rankings page.'
-      ),
-    },
-    {
-      enabledKey: 'photoEnabled',
-      requireAuthKey: 'photoRequireAuth',
-      requireAuthDependsOn: 'photoEnabled',
-      title: t('Experience Hub'),
-      description: t('Top nav "Experience Hub" entry, links to the image playground (/photo).'),
-      requireAuthTitle: t('Require login to view Experience Hub'),
-      requireAuthDescription: t(
-        'Visitors must authenticate before accessing the Experience Hub.'
-      ),
-    },
-    {
-      enabledKey: 'studioEnabled',
-      requireAuthKey: 'studioRequireAuth',
-      requireAuthDependsOn: 'studioEnabled',
-      title: t('Studio'),
-      description: t('Top nav "Studio" entry, links to the studio playground (/studio).'),
-      requireAuthTitle: t('Require login to view Studio'),
-      requireAuthDescription: t(
-        'Visitors must authenticate before accessing Studio.'
       ),
     },
   ]
@@ -279,8 +219,7 @@ export function HeaderNavigationSection({
             resetLabel='Reset to default'
             saveLabel='Save navigation'
           />
-
-          <SettingsFormGrid>
+          <div className='grid gap-4 md:grid-cols-2'>
             {simpleModules.map((module) => (
               <FormField
                 key={module.key}
@@ -289,12 +228,8 @@ export function HeaderNavigationSection({
                 render={({ field }) => (
                   <SettingsSwitchItem>
                     <SettingsSwitchContent>
-                      <FormLabel className={formLabelClassName}>
-                        {module.title}
-                      </FormLabel>
-                      <FormDescription className={formDescriptionClassName}>
-                        {module.description}
-                      </FormDescription>
+                      <FormLabel>{module.title}</FormLabel>
+                      <FormDescription>{module.description}</FormDescription>
                     </SettingsSwitchContent>
                     <FormControl>
                       <Switch
@@ -307,9 +242,9 @@ export function HeaderNavigationSection({
                 )}
               />
             ))}
-          </SettingsFormGrid>
+          </div>
 
-          <SettingsFormGrid>
+          <div className='grid gap-4 lg:grid-cols-2'>
             {accessModules.map((module) => (
               <SettingsControlGroup key={module.enabledKey}>
                 <FormField
@@ -318,12 +253,8 @@ export function HeaderNavigationSection({
                   render={({ field }) => (
                     <SettingsSwitchItem>
                       <SettingsSwitchContent>
-                        <FormLabel className={formLabelClassName}>
-                          {module.title}
-                        </FormLabel>
-                        <FormDescription className={formDescriptionClassName}>
-                          {module.description}
-                        </FormDescription>
+                        <FormLabel>{module.title}</FormLabel>
+                        <FormDescription>{module.description}</FormDescription>
                       </SettingsSwitchContent>
                       <FormControl>
                         <Switch
@@ -343,10 +274,8 @@ export function HeaderNavigationSection({
                     <SettingsControlChildren>
                       <SettingsSwitchItem className='py-2'>
                         <SettingsSwitchContent>
-                          <FormLabel className={formLabelClassName}>
-                            {module.requireAuthTitle}
-                          </FormLabel>
-                          <FormDescription className={formDescriptionClassName}>
+                          <FormLabel>{module.requireAuthTitle}</FormLabel>
+                          <FormDescription>
                             {module.requireAuthDescription}
                           </FormDescription>
                         </SettingsSwitchContent>
@@ -364,7 +293,7 @@ export function HeaderNavigationSection({
                 />
               </SettingsControlGroup>
             ))}
-          </SettingsFormGrid>
+          </div>
         </SettingsForm>
       </Form>
     </SettingsSection>

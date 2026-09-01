@@ -26,19 +26,6 @@ const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
   'oauth:binding:result',
 ])
 
-const PRESERVED_LOCAL_STORAGE_PREFIXES = [
-  'photo_history',
-  'photo_generation_',
-  'playground_',
-] as const
-
-function shouldPreserveLocalStorageKey(key: string): boolean {
-  if (PRESERVED_LOCAL_STORAGE_KEYS.has(key)) return true
-  return PRESERVED_LOCAL_STORAGE_PREFIXES.some((prefix) =>
-    key.startsWith(prefix)
-  )
-}
-
 export function initializeFrontendCache(): void {
   if (typeof window === 'undefined') return
 
@@ -62,7 +49,7 @@ function clearLocalUiCache(): void {
   const keysToRemove: string[] = []
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const key = window.localStorage.key(index)
-    if (key && !shouldPreserveLocalStorageKey(key)) {
+    if (key && !PRESERVED_LOCAL_STORAGE_KEYS.has(key)) {
       keysToRemove.push(key)
     }
   }

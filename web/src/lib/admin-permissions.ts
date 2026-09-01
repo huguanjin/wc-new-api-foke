@@ -31,6 +31,8 @@ export const ADMIN_PERMISSION_ACTIONS = {
   READ: 'read',
   OPERATE: 'operate',
   WRITE: 'write',
+  CREATE: 'create',
+  TEST: 'test',
   SENSITIVE_WRITE: 'sensitive_write',
   SECRET_VIEW: 'secret_view',
 } as const

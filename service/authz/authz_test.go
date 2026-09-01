@@ -33,23 +33,39 @@ func TestInitSeedsBuiltInRolesAndPoliciesOnce(t *testing.T) {
 	require.NoError(t, Init(db))
 	require.NoError(t, Init(db))
 
-	// root is a superuser role and is granted everything implicitly, so only the
-	// admin baseline is written as explicit policy rows.
+	// root is a superuser role and is granted everything implicitly, so only
+	// non-superuser built-in role baselines are written as explicit policy rows.
 	var count int64
 	require.NoError(t, db.Model(&model.CasbinRule{}).Count(&count).Error)
-	assert.Equal(t, int64(len(PermissionsForRole(BuiltInRoleAdmin))), count)
+	expected := int64(0)
+	for _, role := range []string{BuiltInRoleAdmin, BuiltInRoleChannelAdmin, BuiltInRoleReadonlyAdmin} {
+		expected += int64(len(PermissionsForRole(role)))
+	}
+	assert.Equal(t, expected, count)
 
 	var roles []model.AuthzRole
 	require.NoError(t, db.Order("sort asc").Find(&roles).Error)
-	require.Len(t, roles, 2)
+	require.Len(t, roles, 4)
 	assert.Equal(t, BuiltInRoleRoot, roles[0].Key)
 	assert.Equal(t, BuiltInRoleAdmin, roles[1].Key)
+	assert.Equal(t, BuiltInRoleChannelAdmin, roles[2].Key)
+	assert.Equal(t, BuiltInRoleReadonlyAdmin, roles[3].Key)
 
 	assert.True(t, Can(1, common.RoleRootUser, ChannelSensitiveWrite))
 	assert.True(t, Can(2, common.RoleAdminUser, ChannelRead))
 	assert.True(t, Can(2, common.RoleAdminUser, ChannelOperate))
 	assert.True(t, Can(2, common.RoleAdminUser, ChannelWrite))
+	assert.False(t, Can(2, common.RoleAdminUser, ChannelCreate))
+	assert.True(t, Can(2, common.RoleAdminUser, ChannelTest))
 	assert.False(t, Can(2, common.RoleAdminUser, ChannelSensitiveWrite))
+	assert.True(t, Can(4, common.RoleChannelAdmin, ChannelRead))
+	assert.True(t, Can(4, common.RoleChannelAdmin, ChannelCreate))
+	assert.True(t, Can(4, common.RoleChannelAdmin, ChannelTest))
+	assert.False(t, Can(4, common.RoleChannelAdmin, ChannelWrite))
+	assert.False(t, Can(4, common.RoleChannelAdmin, ChannelOperate))
+	assert.True(t, Can(5, common.RoleReadonlyAdmin, ChannelRead))
+	assert.False(t, Can(5, common.RoleReadonlyAdmin, ChannelCreate))
+	assert.False(t, Can(5, common.RoleReadonlyAdmin, ChannelTest))
 	assert.False(t, Can(3, common.RoleCommonUser, ChannelRead))
 }
 
@@ -85,7 +101,9 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 		ResourceChannel: {
 			ActionRead:           true,
 			ActionOperate:        true,
+			ActionTest:           true,
 			ActionWrite:          false,
+			ActionCreate:         false,
 			ActionSensitiveWrite: true,
 			ActionSecretView:     false,
 			"unknown":            true,
@@ -101,7 +119,9 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 		ResourceChannel: {
 			ActionRead:           true,
 			ActionOperate:        true,
+			ActionTest:           true,
 			ActionWrite:          false,
+			ActionCreate:         false,
 			ActionSensitiveWrite: true,
 			ActionSecretView:     false,
 		},
@@ -120,7 +140,9 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 	require.NoError(t, SetUserPermissions(42, PermissionsMap{ResourceChannel: {
 		ActionRead:           true,
 		ActionOperate:        true,
+		ActionTest:           true,
 		ActionWrite:          true,
+		ActionCreate:         false,
 		ActionSensitiveWrite: false,
 		ActionSecretView:     false,
 	}}))
@@ -129,7 +151,9 @@ func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {
 		ResourceChannel: {
 			ActionRead:           true,
 			ActionOperate:        true,
+			ActionTest:           true,
 			ActionWrite:          true,
+			ActionCreate:         false,
 			ActionSensitiveWrite: false,
 			ActionSecretView:     false,
 		},
@@ -223,7 +247,9 @@ func TestCapabilitiesUseCatalogShape(t *testing.T) {
 
 	assert.True(t, capabilities[ResourceChannel][ActionRead])
 	assert.True(t, capabilities[ResourceChannel][ActionOperate])
+	assert.True(t, capabilities[ResourceChannel][ActionTest])
 	assert.True(t, capabilities[ResourceChannel][ActionWrite])
+	assert.False(t, capabilities[ResourceChannel][ActionCreate])
 	assert.False(t, capabilities[ResourceChannel][ActionSensitiveWrite])
 	assert.False(t, capabilities[ResourceChannel][ActionSecretView])
 }

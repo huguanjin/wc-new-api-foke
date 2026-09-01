@@ -53,13 +53,19 @@ export function useSidebarView(): ResolvedSidebarView {
 
   const rootNavGroups = useMemo<NavGroup[]>(() => {
     const role = userRole ?? ROLE.GUEST
-    const isAdmin = role >= ROLE.ADMIN
+    const isChannelStaff = role >= ROLE.CHANNEL_ADMIN
     return configFilteredRoot
-      .filter((group) => (group.id === 'admin' ? isAdmin : true))
+      .filter((group) => (group.id === 'admin' ? isChannelStaff : true))
       .map((group) => {
-        const items = group.items.filter(
-          (item) => item.requiredRole === undefined || role >= item.requiredRole
-        )
+        const items = group.items.filter((item) => {
+          if (role === ROLE.CHANNEL_ADMIN) {
+            if ('url' in item && item.url === '/keys') return false
+            if ('type' in item && item.type === 'chat-presets') return false
+          }
+          return (
+            item.requiredRole === undefined || role >= item.requiredRole
+          )
+        })
         return items.length === group.items.length ? group : { ...group, items }
       })
   }, [configFilteredRoot, userRole])

@@ -21,7 +21,6 @@ import { Link } from '@tanstack/react-router'
 import axios from 'axios'
 import { Loader2, LogIn, KeyRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import type { FocusEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -49,7 +48,6 @@ import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
-import { useAuthAnimation } from '@/features/auth/context/auth-animation-context'
 import { useStatus } from '@/hooks/use-status'
 import { isAuthBundle } from '@/lib/api'
 import {
@@ -77,9 +75,6 @@ export function UserAuthForm({
   const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0)
   const legalConsentErrorMessage = t('Please agree to the legal terms first')
   const loginFailedMessage = t('Login failed')
-
-  const authAnimation = useAuthAnimation()
-  const setAuthAnimationState = authAnimation?.setAuthAnimationState
 
   const { status } = useStatus()
   const passkeyLoginEnabled = Boolean(
@@ -133,46 +128,6 @@ export function UserAuthForm({
       .then(setPasskeySupported)
       .catch(() => setPasskeySupported(false))
   }, [])
-
-  useEffect(() => {
-    return () => {
-      setAuthAnimationState?.({
-        focusedField: null,
-        showPassword: false,
-        passwordLength: 0,
-      })
-    }
-  }, [setAuthAnimationState])
-
-  const handleFieldFocus = (field: 'username' | 'password') => {
-    setAuthAnimationState?.({
-      focusedField: field,
-    })
-  }
-
-  const handleFieldBlur = (event?: FocusEvent<HTMLInputElement>) => {
-    const nextTarget = event?.relatedTarget
-    const formRoot = event?.currentTarget.form
-    if (nextTarget instanceof Node && formRoot?.contains(nextTarget)) {
-      return
-    }
-
-    setAuthAnimationState?.({
-      focusedField: null,
-    })
-  }
-
-  const handlePasswordChange = (value: string) => {
-    setAuthAnimationState?.({
-      passwordLength: value.length,
-    })
-  }
-
-  const handlePasswordVisibilityChange = (visible: boolean) => {
-    setAuthAnimationState?.({
-      showPassword: visible,
-    })
-  }
 
   const form = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
@@ -415,11 +370,6 @@ export function UserAuthForm({
                     <Input
                       placeholder={t('Enter your username or email')}
                       {...field}
-                      onFocus={() => handleFieldFocus('username')}
-                      onBlur={(event) => {
-                        field.onBlur()
-                        handleFieldBlur(event)
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -438,16 +388,6 @@ export function UserAuthForm({
                     <PasswordInput
                       placeholder={t('Enter password')}
                       {...field}
-                      onFocus={() => handleFieldFocus('password')}
-                      onBlur={(event) => {
-                        field.onBlur()
-                        handleFieldBlur(event)
-                      }}
-                      onChange={(event) => {
-                        field.onChange(event)
-                        handlePasswordChange(event.target.value)
-                      }}
-                      onVisibilityChange={handlePasswordVisibilityChange}
                     />
                   </FormControl>
                   <FormMessage />

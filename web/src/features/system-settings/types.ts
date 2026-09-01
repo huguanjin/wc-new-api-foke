@@ -108,16 +108,11 @@ export type SystemTaskListResponse = {
 
 export type SiteSettings = {
   Notice: string
-  NoticeI18nContent: string
   SystemName: string
   Logo: string
   Footer: string
   About: string
   HomePageContent: string
-  HomePageHeroContent: string
-  HomePageHeroI18nContent: string
-  HomePageModelCarouselContent: string
-  HomePageModelCarouselI18nContent: string
   ServerAddress: string
   'legal.user_agreement': string
   'legal.privacy_policy': string

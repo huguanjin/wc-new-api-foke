@@ -76,7 +76,6 @@ export async function getNotice(): Promise<{
   success: boolean
   message?: string
   data?: string
-  i18nContent?: string
 }> {
   const res = await api.get('/api/notice')
   return res.data

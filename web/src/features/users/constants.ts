@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Shield, User, Users } from 'lucide-react'
+import { Eye, Radio, Shield, User, Users } from 'lucide-react'
 
 import type { User as UserType } from './types'
 
@@ -68,6 +68,8 @@ export const getUserStatusOptions = (t: (key: string) => string) => [
 
 export const USER_ROLE = {
   USER: 1,
+  CHANNEL_ADMIN: 5,
+  READONLY_ADMIN: 8,
   ADMIN: 10,
   ROOT: 100,
 } as const
@@ -77,6 +79,16 @@ export const USER_ROLES = {
     labelKey: 'User',
     value: USER_ROLE.USER,
     icon: User,
+  },
+  [USER_ROLE.CHANNEL_ADMIN]: {
+    labelKey: 'Channel Admin',
+    value: USER_ROLE.CHANNEL_ADMIN,
+    icon: Radio,
+  },
+  [USER_ROLE.READONLY_ADMIN]: {
+    labelKey: 'Readonly Admin',
+    value: USER_ROLE.READONLY_ADMIN,
+    icon: Eye,
   },
   [USER_ROLE.ADMIN]: {
     labelKey: 'Admin',
@@ -92,6 +104,16 @@ export const USER_ROLES = {
 
 export const getUserRoleOptions = (t: (key: string) => string) => [
   { label: t('User'), value: String(USER_ROLE.USER), icon: User },
+  {
+    label: t('Channel Admin'),
+    value: String(USER_ROLE.CHANNEL_ADMIN),
+    icon: Radio,
+  },
+  {
+    label: t('Readonly Admin'),
+    value: String(USER_ROLE.READONLY_ADMIN),
+    icon: Eye,
+  },
   { label: t('Admin'), value: String(USER_ROLE.ADMIN), icon: Users },
   { label: t('Root'), value: String(USER_ROLE.ROOT), icon: Shield },
 ]

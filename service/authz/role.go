@@ -1,8 +1,10 @@
 package authz
 
 const (
-	BuiltInRoleRoot  = "root"
-	BuiltInRoleAdmin = "admin"
+	BuiltInRoleRoot          = "root"
+	BuiltInRoleAdmin         = "admin"
+	BuiltInRoleChannelAdmin  = "channel_admin"
+	BuiltInRoleReadonlyAdmin = "readonly_admin"
 )
 
 // RoleSpec describes a role. A superuser role is allowed every permission
@@ -33,6 +35,22 @@ var builtInRoles = []RoleSpec{
 		Superuser:   false,
 		Sort:        10,
 	},
+	{
+		Key:         BuiltInRoleChannelAdmin,
+		Name:        "Channel Admin",
+		Description: "Create and test owned channels; cannot manage routing or API keys",
+		BuiltIn:     true,
+		Superuser:   false,
+		Sort:        20,
+	},
+	{
+		Key:         BuiltInRoleReadonlyAdmin,
+		Name:        "Readonly Admin",
+		Description: "Read channels in the user's billing group",
+		BuiltIn:     true,
+		Superuser:   false,
+		Sort:        30,
+	},
 }
 
 // RoleDescriptor exposes a role together with its baseline grant matrix.
@@ -50,7 +68,7 @@ func Roles() []RoleDescriptor {
 	for _, spec := range builtInRoles {
 		result = append(result, RoleDescriptor{
 			Key:       spec.Key,
-			Name:      spec.Name,
+			Name:       spec.Name,
 			BuiltIn:   spec.BuiltIn,
 			Superuser: spec.Superuser,
 			Grants:    roleGrants(spec),

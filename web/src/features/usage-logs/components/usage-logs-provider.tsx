@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, type ReactNode } from 'react'
 
-import { useIsAdmin } from '@/hooks/use-admin'
+import { useIsAdmin, useIsChannelAdmin, useIsReadonlyAdmin } from '@/hooks/use-admin'
 
 import type { ChannelAffinityInfo } from '../types'
 
@@ -90,15 +90,29 @@ export function useUsageLogsContext() {
  * (`isAdminView`). Data fetching and admin-only UI should key off
  * `isAdminView` rather than raw role, so an admin who switches to "only
  * mine" is treated exactly like a regular user for that view.
+ *
+ * Readonly admins still use `/api/log/self` and may see channel id (not name)
+ * on their own requests via `showChannelColumn`.
  */
 export function useLogsViewScope() {
   const canManageScope = useIsAdmin()
+  const isChannelAdmin = useIsChannelAdmin()
+  const isReadonlyAdmin = useIsReadonlyAdmin()
   const { viewScope, setViewScope } = useUsageLogsContext()
+
+  const isFullAdminView = canManageScope && viewScope === 'all'
 
   return {
     canManageScope,
     viewScope,
     setViewScope,
-    isAdminView: canManageScope && viewScope === 'all',
+    // Common logs: channel admins query scoped /api/log/; full admins query all.
+    isAdminView: isChannelAdmin || isFullAdminView,
+    // Drawing/task admin endpoints require role >= 10; channel admins must use /self.
+    isTaskAdminView: isFullAdminView,
+    hideUserFilters: isChannelAdmin,
+    // Channel id column for staff; channel name is only filled for full/channel admin views.
+    showChannelColumn:
+      isChannelAdmin || isReadonlyAdmin || isFullAdminView,
   }
 }
