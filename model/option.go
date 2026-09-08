@@ -67,8 +67,13 @@ func InitOptionMap() {
 	common.OptionMap["SMTPInsecureSkipVerify"] = strconv.FormatBool(common.SMTPInsecureSkipVerify)
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
 	common.OptionMap["Notice"] = ""
+	common.OptionMap["NoticeI18nContent"] = ""
 	common.OptionMap["About"] = ""
 	common.OptionMap["HomePageContent"] = ""
+	common.OptionMap["HomePageHeroContent"] = ""
+	common.OptionMap["HomePageHeroI18nContent"] = ""
+	common.OptionMap["HomePageModelCarouselContent"] = ""
+	common.OptionMap["HomePageModelCarouselI18nContent"] = ""
 	common.OptionMap["Footer"] = common.Footer
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo

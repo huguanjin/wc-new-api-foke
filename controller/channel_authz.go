@@ -88,7 +88,6 @@ var channelReadOnlyFields = map[string]struct{}{
 	"balance":              {},
 	"balance_updated_time": {},
 	"used_quota":           {},
-	"creator_id":           {},
 }
 
 func clearChannelReadOnlyFields(channel *PatchChannel, requestData map[string]any) {
@@ -109,9 +108,6 @@ func clearChannelReadOnlyFields(channel *PatchChannel, requestData map[string]an
 	}
 	if _, ok := requestData["used_quota"]; ok {
 		channel.UsedQuota = 0
-	}
-	if _, ok := requestData["creator_id"]; ok {
-		channel.CreatorId = 0
 	}
 }
 

@@ -113,11 +113,9 @@ func assignDisplayLogIds(logs []*Log, startIdx int) {
 	}
 }
 
-func formatUserLogs(logs []*Log, startIdx int, keepChannelName bool) {
+func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
-		if !keepChannelName {
-			logs[i].ChannelName = ""
-		}
+		logs[i].ChannelName = ""
 		var otherMap map[string]interface{}
 		otherMap, _ = common.StrToMap(logs[i].Other)
 		if otherMap != nil {
@@ -133,85 +131,13 @@ func formatUserLogs(logs []*Log, startIdx int, keepChannelName bool) {
 	assignDisplayLogIds(logs, startIdx)
 }
 
-// fillLogChannelNames attaches channel display names for log rows that have a channel id.
-func fillLogChannelNames(logs []*Log) error {
-	channelIds := types.NewSet[int]()
-	for _, log := range logs {
-		if log.ChannelId != 0 {
-			channelIds.Add(log.ChannelId)
-		}
-	}
-	if channelIds.Len() == 0 {
-		return nil
-	}
-
-	var channels []struct {
-		Id   int    `gorm:"column:id"`
-		Name string `gorm:"column:name"`
-	}
-	if common.MemoryCacheEnabled {
-		for _, channelId := range channelIds.Items() {
-			if cacheChannel, err := CacheGetChannel(channelId); err == nil {
-				channels = append(channels, struct {
-					Id   int    `gorm:"column:id"`
-					Name string `gorm:"column:name"`
-				}{
-					Id:   channelId,
-					Name: cacheChannel.Name,
-				})
-			}
-		}
-	} else {
-		if err := DB.Table("channels").Select("id, name").Where("id IN ?", channelIds.Items()).Find(&channels).Error; err != nil {
-			return err
-		}
-	}
-	channelMap := make(map[int]string, len(channels))
-	for _, channel := range channels {
-		channelMap[channel.Id] = channel.Name
-	}
-	for i := range logs {
-		logs[i].ChannelName = channelMap[logs[i].ChannelId]
-	}
-	return nil
-}
-
-const maskedLogUserInfo = "**"
-
-func FormatChannelAdminLogs(logs []*Log) {
-	for i := range logs {
-		logs[i].Username = maskedLogUserInfo
-		logs[i].TokenName = maskedLogUserInfo
-		logs[i].UserId = 0
-		logs[i].TokenId = 0
-		logs[i].Ip = ""
-		var otherMap map[string]interface{}
-		otherMap, _ = common.StrToMap(logs[i].Other)
-		if otherMap != nil {
-			delete(otherMap, "admin_info")
-			delete(otherMap, "audit_info")
-		}
-		logs[i].Other = common.MapToJsonStr(otherMap)
-	}
-}
-
-func applyOwnedChannelFilter(tx *gorm.DB, column string, ownedChannelIDs []int) *gorm.DB {
-	if ownedChannelIDs == nil {
-		return tx
-	}
-	if len(ownedChannelIDs) == 0 {
-		return tx.Where("1 = 0")
-	}
-	return tx.Where(column+" IN ?", ownedChannelIDs)
-}
-
 func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	order := "id desc"
 	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
 		order = clickHouseLogOrder("")
 	}
 	err = LOG_DB.Model(&Log{}).Where("token_id = ?", tokenId).Order(order).Limit(common.MaxRecentItems).Find(&logs).Error
-	formatUserLogs(logs, 0, false)
+	formatUserLogs(logs, 0)
 	return logs, err
 }
 
@@ -539,7 +465,7 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
 	}
 }
 
-func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, ownedChannelIDs []int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
+func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB
@@ -571,7 +497,6 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 	if channel != 0 {
 		tx = tx.Where("logs.channel_id = ?", channel)
 	}
-	tx = applyOwnedChannelFilter(tx, "logs.channel_id", ownedChannelIDs)
 	if group != "" {
 		tx = tx.Where("logs."+logGroupCol+" = ?", group)
 	}
@@ -591,8 +516,44 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 		assignDisplayLogIds(logs, startIdx)
 	}
 
-	if err = fillLogChannelNames(logs); err != nil {
-		return logs, total, err
+	channelIds := types.NewSet[int]()
+	for _, log := range logs {
+		if log.ChannelId != 0 {
+			channelIds.Add(log.ChannelId)
+		}
+	}
+
+	if channelIds.Len() > 0 {
+		var channels []struct {
+			Id   int    `gorm:"column:id"`
+			Name string `gorm:"column:name"`
+		}
+		if common.MemoryCacheEnabled {
+			// Cache get channel
+			for _, channelId := range channelIds.Items() {
+				if cacheChannel, err := CacheGetChannel(channelId); err == nil {
+					channels = append(channels, struct {
+						Id   int    `gorm:"column:id"`
+						Name string `gorm:"column:name"`
+					}{
+						Id:   channelId,
+						Name: cacheChannel.Name,
+					})
+				}
+			}
+		} else {
+			// Bulk query channels from DB
+			if err = DB.Table("channels").Select("id, name").Where("id IN ?", channelIds.Items()).Find(&channels).Error; err != nil {
+				return logs, total, err
+			}
+		}
+		channelMap := make(map[int]string, len(channels))
+		for _, channel := range channels {
+			channelMap[channel.Id] = channel.Name
+		}
+		for i := range logs {
+			logs[i].ChannelName = channelMap[logs[i].ChannelId]
+		}
 	}
 
 	return logs, total, err
@@ -600,7 +561,7 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 
 const logSearchCountLimit = 10000
 
-func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, group string, requestId string, upstreamRequestId string, keepChannelName bool) (logs []*Log, total int64, err error) {
+func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB.Where("logs.user_id = ?", userId)
@@ -644,12 +605,7 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 		return nil, 0, errors.New("查询日志失败")
 	}
 
-	formatUserLogs(logs, startIdx, keepChannelName)
-	if keepChannelName {
-		if err = fillLogChannelNames(logs); err != nil {
-			return nil, 0, err
-		}
-	}
+	formatUserLogs(logs, startIdx)
 	return logs, total, err
 }
 
@@ -659,7 +615,7 @@ type Stat struct {
 	Tpm   int `json:"tpm"`
 }
 
-func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, ownedChannelIDs []int, group string) (stat Stat, err error) {
+func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
 
 	// 为rpm和tpm创建单独的查询
@@ -691,8 +647,6 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 		tx = tx.Where("channel_id = ?", channel)
 		rpmTpmQuery = rpmTpmQuery.Where("channel_id = ?", channel)
 	}
-	tx = applyOwnedChannelFilter(tx, "channel_id", ownedChannelIDs)
-	rpmTpmQuery = applyOwnedChannelFilter(rpmTpmQuery, "channel_id", ownedChannelIDs)
 	if group != "" {
 		tx = tx.Where(logGroupCol+" = ?", group)
 		rpmTpmQuery = rpmTpmQuery.Where(logGroupCol+" = ?", group)

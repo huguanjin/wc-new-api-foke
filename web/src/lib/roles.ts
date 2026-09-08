@@ -21,8 +21,6 @@ import { t } from 'i18next'
 export const ROLE = {
   GUEST: 0, // 后续如果需要用到这个角色那就再加，同语先留一下
   USER: 1,
-  CHANNEL_ADMIN: 5,
-  READONLY_ADMIN: 8,
   ADMIN: 10,
   SUPER_ADMIN: 100,
 } as const
@@ -34,8 +32,6 @@ const DEFAULT_ROLE = ROLE.GUEST
 const ROLE_LABEL_KEYS: Record<RoleValue, string> = {
   [ROLE.SUPER_ADMIN]: 'Super Admin',
   [ROLE.ADMIN]: 'Admin',
-  [ROLE.READONLY_ADMIN]: 'Readonly Admin',
-  [ROLE.CHANNEL_ADMIN]: 'Channel Admin',
   [ROLE.USER]: 'User',
   [ROLE.GUEST]: 'Guest',
 }
@@ -46,10 +42,4 @@ export function getRoleLabelKey(role?: number): string {
 
 export function getRoleLabel(role?: number): string {
   return t(getRoleLabelKey(role))
-}
-
-/** Channel admins cannot create or list personal API keys. */
-export function canManageApiKeys(role?: number): boolean {
-  const value = role ?? ROLE.GUEST
-  return value !== ROLE.CHANNEL_ADMIN && value >= ROLE.USER
 }

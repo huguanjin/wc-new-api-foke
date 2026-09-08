@@ -57,7 +57,6 @@ import { truncateText } from '@/lib/utils'
 
 import { getCodexUsage } from '../api'
 import { CHANNEL_STATUS_CONFIG, MODEL_FETCHABLE_TYPES } from '../constants'
-import { useChannelPermissions } from '../hooks/use-channel-permissions'
 import {
   formatRelativeTime,
   formatResponseTime,
@@ -87,7 +86,6 @@ import {
   type CodexUsageDialogData,
 } from './dialogs/codex-usage-dialog'
 import { NumericSpinnerInput } from './numeric-spinner-input'
-import { useIsReadonlyAdmin } from '@/hooks/use-admin'
 
 function parseIonetMeta(otherInfo: string | null | undefined): null | {
   source?: string
@@ -192,7 +190,6 @@ function PriorityCell({ channel }: { channel: Channel }) {
 function TagPriorityCell({ channel }: { channel: TagRow }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { canWrite } = useChannelPermissions()
   const priority = channel.priority
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingValue, setPendingValue] = useState<number | null>(null)
@@ -208,7 +205,6 @@ function TagPriorityCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={-999}
-        disabled={!canWrite}
       />
       <ConfirmDialog
         open={confirmOpen}
@@ -242,7 +238,6 @@ function ChannelFieldCell({
   min: number
 }) {
   const queryClient = useQueryClient()
-  const { canWrite } = useChannelPermissions()
   const fieldUpdateScheduler = useMemo(
     () =>
       createChannelFieldUpdateScheduler((nextValue) => {
@@ -259,7 +254,6 @@ function ChannelFieldCell({
       onChange={fieldUpdateScheduler.schedule}
       onCommit={fieldUpdateScheduler.flush}
       min={min}
-      disabled={!canWrite}
     />
   )
 }
@@ -285,7 +279,6 @@ function WeightCell({ channel }: { channel: Channel }) {
 function TagWeightCell({ channel }: { channel: TagRow }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { canWrite } = useChannelPermissions()
   const weight = channel.weight
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingValue, setPendingValue] = useState<number | null>(null)
@@ -301,7 +294,6 @@ function TagWeightCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={0}
-        disabled={!canWrite}
       />
       <ConfirmDialog
         open={confirmOpen}
@@ -558,7 +550,6 @@ export function useChannelsColumns(
 ): ColumnDef<Channel>[] {
   const { t, i18n } = useTranslation()
   const { sensitiveVisible } = useChannels()
-  const isReadonlyAdmin = useIsReadonlyAdmin()
   const enableSelection = options.enableSelection ?? true
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   // The column definitions only depend on the translation function, the active
@@ -669,11 +660,7 @@ export function useChannelsColumns(
               <div className='flex max-w-full min-w-0 flex-col gap-1'>
                 <div className='flex max-w-full min-w-0 items-center gap-1.5'>
                   <TruncatedText
-                    text={
-                      isReadonlyAdmin || !sensitiveVisible
-                        ? SENSITIVE_MASK
-                        : name
-                    }
+                    text={sensitiveVisible ? name : SENSITIVE_MASK}
                     className='font-medium'
                     maxWidth='max-w-full'
                   />
@@ -1197,6 +1184,6 @@ export function useChannelsColumns(
         meta: { pinned: 'right' as const },
       },
     ],
-    [enableSelection, t, locale, sensitiveVisible, isReadonlyAdmin]
+    [enableSelection, t, locale, sensitiveVisible]
   )
 }

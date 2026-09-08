@@ -473,8 +473,6 @@ function TokenBreakdown(props: { log: UsageLog; other: LogOtherData }) {
 interface DetailsDialogProps {
   log: UsageLog
   isAdmin: boolean
-  /** Show channel id/name like admin logs (e.g. readonly admin self logs). */
-  showChannel?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -485,7 +483,6 @@ export function DetailsDialog(props: DetailsDialogProps) {
   const details = props.log.content ?? ''
   const other = parseLogOther(props.log.other)
   const typeConfig = getLogTypeConfig(props.log.type)
-  const showChannel = props.showChannel ?? props.isAdmin
 
   const isViolation = isViolationFeeLog(other)
   const isRefund = props.log.type === 6
@@ -657,7 +654,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
             />
           )}
 
-          {showChannel && props.log.channel > 0 && (
+          {props.isAdmin && props.log.channel > 0 && (
             <DetailRow
               label={t('Channel')}
               value={

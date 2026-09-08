@@ -41,20 +41,6 @@ declare module 'axios' {
 
 export type ApiRequestConfig = AxiosRequestConfig
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object'
-}
-
-function isGetPrivilegeDenied(
-  config: AxiosRequestConfig | undefined,
-  payload: unknown
-): boolean {
-  const method = String(config?.method ?? '').toLowerCase()
-  if (method !== 'get' && method !== 'head') return false
-  if (!isRecord(payload)) return false
-  return payload.code === 'AUTH_INSUFFICIENT_PRIVILEGE'
-}
-
 export const api = axios.create({
   baseURL: '',
   withCredentials: true,
@@ -100,8 +86,7 @@ api.interceptors.response.use(
     if (
       !response.config.skipBusinessError &&
       typeof response.data?.success === 'boolean' &&
-      !response.data.success &&
-      !isGetPrivilegeDenied(response.config, response.data)
+      !response.data.success
     ) {
       const messageKey = getServerErrorMessageKey(response.data)
       toast.error(
@@ -143,10 +128,7 @@ api.interceptors.response.use(
       } else if (!skipErrorHandler) {
         toast.error(t('Session expired!'))
       }
-    } else if (
-      !skipErrorHandler &&
-      !isGetPrivilegeDenied(config, error?.response?.data)
-    ) {
+    } else if (!skipErrorHandler) {
       const messageKey = getServerErrorMessageKey(error)
       const message = messageKey
         ? t(messageKey)

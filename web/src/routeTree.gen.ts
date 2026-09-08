@@ -30,9 +30,13 @@ import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
+import { Route as PhotoIndexRouteImport } from './routes/photo/index'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
+import { Route as StudioIndexRouteImport } from './routes/studio/index'
+import { Route as StudioModelRouteImport } from './routes/studio/$model'
+import { Route as VideoIndexRouteImport } from './routes/video/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
@@ -172,6 +176,11 @@ const OauthProviderRoute = OauthProviderRouteImport.update({
   path: '/oauth/$provider',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PhotoIndexRoute = PhotoIndexRouteImport.update({
+  id: '/photo/',
+  path: '/photo/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingIndexRoute = PricingIndexRouteImport.update({
   id: '/pricing/',
   path: '/pricing/',
@@ -185,6 +194,21 @@ const RankingsIndexRoute = RankingsIndexRouteImport.update({
 const SetupIndexRoute = SetupIndexRouteImport.update({
   id: '/setup/',
   path: '/setup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/studio/',
+  path: '/studio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioModelRoute = StudioModelRouteImport.update({
+  id: '/studio/$model',
+  path: '/studio/$model',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VideoIndexRoute = VideoIndexRouteImport.update({
+  id: '/video/',
+  path: '/video/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authUserResetRoute = authUserResetRouteImport.update({
@@ -406,10 +430,14 @@ export interface FileRoutesByFullPath {
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
+  '/studio/$model': typeof StudioModelRoute
   '/about/': typeof AboutIndexRoute
+  '/photo/': typeof PhotoIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/studio/': typeof StudioIndexRoute
+  '/video/': typeof VideoIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -463,10 +491,14 @@ export interface FileRoutesByTo {
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
+  '/studio/$model': typeof StudioModelRoute
   '/about': typeof AboutIndexRoute
+  '/photo': typeof PhotoIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
+  '/studio': typeof StudioIndexRoute
+  '/video': typeof VideoIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -524,10 +556,14 @@ export interface FileRoutesById {
   '/(errors)/503': typeof errors503Route
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
+  '/studio/$model': typeof StudioModelRoute
   '/about/': typeof AboutIndexRoute
+  '/photo/': typeof PhotoIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/studio/': typeof StudioIndexRoute
+  '/video/': typeof VideoIndexRoute
   '/(auth)/user/reset': typeof authUserResetRoute
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
@@ -584,10 +620,14 @@ export interface FileRouteTypes {
     | '/503'
     | '/chat2link'
     | '/oauth/$provider'
+    | '/studio/$model'
     | '/about/'
+    | '/photo/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
+    | '/studio/'
+    | '/video/'
     | '/user/reset'
     | '/chat/$chatId'
     | '/dashboard/$section'
@@ -641,10 +681,14 @@ export interface FileRouteTypes {
     | '/503'
     | '/chat2link'
     | '/oauth/$provider'
+    | '/studio/$model'
     | '/about'
+    | '/photo'
     | '/pricing'
     | '/rankings'
     | '/setup'
+    | '/studio'
+    | '/video'
     | '/user/reset'
     | '/chat/$chatId'
     | '/dashboard/$section'
@@ -701,10 +745,14 @@ export interface FileRouteTypes {
     | '/(errors)/503'
     | '/_authenticated/chat2link'
     | '/oauth/$provider'
+    | '/studio/$model'
     | '/about/'
+    | '/photo/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
+    | '/studio/'
+    | '/video/'
     | '/(auth)/user/reset'
     | '/_authenticated/chat/$chatId'
     | '/_authenticated/dashboard/$section'
@@ -753,10 +801,14 @@ export interface RootRouteChildren {
   errors500Route: typeof errors500Route
   errors503Route: typeof errors503Route
   OauthProviderRoute: typeof OauthProviderRoute
+  StudioModelRoute: typeof StudioModelRoute
   AboutIndexRoute: typeof AboutIndexRoute
+  PhotoIndexRoute: typeof PhotoIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
+  StudioIndexRoute: typeof StudioIndexRoute
+  VideoIndexRoute: typeof VideoIndexRoute
   PricingModelIdIndexRoute: typeof PricingModelIdIndexRoute
 }
 
@@ -909,6 +961,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OauthProviderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/photo/': {
+      id: '/photo/'
+      path: '/photo'
+      fullPath: '/photo/'
+      preLoaderRoute: typeof PhotoIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing/': {
       id: '/pricing/'
       path: '/pricing'
@@ -928,6 +987,27 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup/'
       preLoaderRoute: typeof SetupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/': {
+      id: '/studio/'
+      path: '/studio'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/$model': {
+      id: '/studio/$model'
+      path: '/studio/$model'
+      fullPath: '/studio/$model'
+      preLoaderRoute: typeof StudioModelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/video/': {
+      id: '/video/'
+      path: '/video'
+      fullPath: '/video/'
+      preLoaderRoute: typeof VideoIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/user/reset': {
@@ -1315,10 +1395,14 @@ const rootRouteChildren: RootRouteChildren = {
   errors500Route: errors500Route,
   errors503Route: errors503Route,
   OauthProviderRoute: OauthProviderRoute,
+  StudioModelRoute: StudioModelRoute,
   AboutIndexRoute: AboutIndexRoute,
+  PhotoIndexRoute: PhotoIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
+  StudioIndexRoute: StudioIndexRoute,
+  VideoIndexRoute: VideoIndexRoute,
   PricingModelIdIndexRoute: PricingModelIdIndexRoute,
 }
 export const routeTree = rootRouteImport

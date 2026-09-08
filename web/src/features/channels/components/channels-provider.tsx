@@ -90,9 +90,6 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
     return localStorage.getItem('channels-id-sort') === 'true'
   })
   const [batchMode, setBatchMode] = useState(false)
-  // Sensitive toggle hides id/balance/groups etc. Channel names for readonly
-  // admins are masked separately (backend + name column), so they can still
-  // use this toggle for other fields.
   const [sensitiveVisible, setSensitiveVisible] = useState(true)
 
   const queryClient = useQueryClient()

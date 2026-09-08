@@ -32,8 +32,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useChannelPermissions } from '../hooks/use-channel-permissions'
+import {
+  ADMIN_PERMISSION_ACTIONS,
+  ADMIN_PERMISSION_RESOURCES,
+  hasPermission,
+} from '@/lib/admin-permissions'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
   handleBatchDelete,
@@ -55,7 +60,12 @@ export function DataTableBulkActions<TData>({
   const [showTagDialog, setShowTagDialog] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [tagValue, setTagValue] = useState('')
-  const { canEditSensitive, canOperate, canWrite } = useChannelPermissions()
+  const currentUser = useAuthStore((s) => s.auth.user)
+  const canEditSensitive = hasPermission(
+    currentUser,
+    ADMIN_PERMISSION_RESOURCES.CHANNEL,
+    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+  )
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
   const selectedIds = selectedRows.reduce<number[]>((ids, row) => {
@@ -107,7 +117,6 @@ export function DataTableBulkActions<TData>({
                 size='icon'
                 onClick={handleEnableAll}
                 className='size-8'
-                disabled={!canOperate}
                 aria-label={t('Enable selected channels')}
                 title={t('Enable selected channels')}
               />
@@ -129,7 +138,6 @@ export function DataTableBulkActions<TData>({
                 size='icon'
                 onClick={handleDisableAll}
                 className='size-8'
-                disabled={!canOperate}
                 aria-label={t('Disable selected channels')}
                 title={t('Disable selected channels')}
               />
@@ -151,7 +159,6 @@ export function DataTableBulkActions<TData>({
                 size='icon'
                 onClick={() => setShowTagDialog(true)}
                 className='size-8'
-                disabled={!canWrite}
                 aria-label={t('Set tag for selected channels')}
                 title={t('Set tag for selected channels')}
               />

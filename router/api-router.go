@@ -31,6 +31,8 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/about", controller.GetAbout)
 		//apiRouter.GET("/midjourney", controller.GetMidjourney)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
+		apiRouter.GET("/home_page_hero_content", controller.GetHomePageHeroContent)
+		apiRouter.GET("/home_page_model_carousel_content", controller.GetHomePageModelCarouselContent)
 		apiRouter.GET("/pricing", middleware.HeaderNavModuleAuth("pricing"), controller.GetPricing)
 		perfMetricsRoute := apiRouter.Group("/perf-metrics")
 		perfMetricsRoute.Use(middleware.HeaderNavModulePublicOrUserAuth("pricing"))
@@ -39,6 +41,14 @@ func SetApiRouter(router *gin.Engine) {
 			perfMetricsRoute.GET("", controller.GetPerfMetrics)
 		}
 		apiRouter.GET("/rankings", middleware.HeaderNavModuleAuth("rankings"), controller.GetRankings)
+
+		customVideoRoute := apiRouter.Group("/video/custom")
+		customVideoRoute.Use(middleware.UserAuth())
+		{
+			customVideoRoute.POST("/generations", controller.CreateCustomVideoGeneration)
+			customVideoRoute.GET("/generations/:task_id", controller.GetCustomVideoGeneration)
+		}
+
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)
 		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
 		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.ResetPassword)
@@ -124,6 +134,9 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/checkin", controller.GetCheckinStatus)
 				selfRoute.POST("/checkin", middleware.TurnstileCheck(), controller.DoCheckin)
 
+				// Photo generation history
+				registerPhotoHistoryRoutes(selfRoute.Group("/photo"))
+
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
@@ -151,6 +164,10 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
 			}
 		}
+
+		photoHistoryRoute := apiRouter.Group("/photo")
+		photoHistoryRoute.Use(middleware.UserAuth())
+		registerPhotoHistoryRoutes(photoHistoryRoute)
 
 		// Subscription billing (plans, purchase, admin management)
 		subscriptionRoute := apiRouter.Group("/subscription")
@@ -234,7 +251,7 @@ func SetApiRouter(router *gin.Engine) {
 		registerChannelRoutes(apiRouter)
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
-		tokenRoute.Use(middleware.UserAuth(), middleware.DenyChannelAdmin())
+		tokenRoute.Use(middleware.UserAuth())
 		{
 			tokenRoute.GET("/", controller.GetAllTokens)
 			tokenRoute.GET("/search", middleware.SearchRateLimit(), controller.SearchTokens)
@@ -270,8 +287,8 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
 		logRoute := apiRouter.Group("/log")
-		logRoute.GET("/", middleware.ChannelStaffAuth(), controller.GetAllLogs)
-		logRoute.GET("/stat", middleware.ChannelStaffAuth(), controller.GetLogsStat)
+		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
+		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)
 		logRoute.GET("/self/stat", middleware.UserAuth(), controller.GetLogsSelfStat)
 		logRoute.GET("/channel_affinity_usage_cache", middleware.AdminAuth(), controller.GetChannelAffinityUsageCacheStats)
 		logRoute.GET("/search", middleware.AdminAuth(), controller.SearchAllLogs)
@@ -294,9 +311,12 @@ func SetApiRouter(router *gin.Engine) {
 			systemInfoRoute.DELETE("/instances/:node_name", controller.DeleteStaleSystemInstance)
 		}
 
+		apiRouter.POST("/visit/track", middleware.SiteVisitRateLimit(), anonymousRequestBodyLimit, controller.TrackSiteVisit)
+
 		dataRoute := apiRouter.Group("/data")
 		dataRoute.GET("/", middleware.AdminAuth(), controller.GetAllQuotaDates)
 		dataRoute.GET("/users", middleware.AdminAuth(), controller.GetQuotaDatesByUser)
+		dataRoute.GET("/visits", middleware.AdminAuth(), controller.GetSiteVisitDates)
 		dataRoute.GET("/self", middleware.UserAuth(), controller.GetUserQuotaDates)
 		dataRoute.GET("/flow", middleware.AdminAuth(), controller.GetAllFlowQuotaDates)
 		dataRoute.GET("/flow/self", middleware.UserAuth(), controller.GetUserFlowQuotaDates)
@@ -381,4 +401,12 @@ func SetApiRouter(router *gin.Engine) {
 			deploymentsRoute.DELETE("/:id", controller.DeleteDeployment)
 		}
 	}
+}
+
+func registerPhotoHistoryRoutes(group *gin.RouterGroup) {
+	group.GET("/history", controller.GetPhotoHistory)
+	group.POST("/history", controller.CreatePhotoHistory)
+	group.POST("/history/:id/images", controller.AppendPhotoHistoryImages)
+	group.DELETE("/history/:id", controller.DeletePhotoHistory)
+	group.GET("/images/:imageId", controller.GetPhotoHistoryImage)
 }

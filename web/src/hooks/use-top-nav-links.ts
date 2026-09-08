@@ -86,13 +86,34 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
-  // Docs (supports external links)
+  // Docs (supports external links — from modules.docs.url or fallback status.docs_link)
   if (modules?.docs !== false) {
-    if (docsLink) {
-      links.push({ title: t('Docs'), href: docsLink, external: true })
-    } else {
-      links.push({ title: t('Docs'), href: '/docs' })
+    const docsEnabled =
+      typeof modules?.docs === 'object' ? modules.docs.enabled : modules?.docs !== false
+    const docsUrl =
+      (typeof modules?.docs === 'object' && modules.docs.url) || docsLink
+
+    if (docsEnabled !== false) {
+      if (docsUrl) {
+        links.push({ title: t('Docs'), href: docsUrl, external: true })
+      } else {
+        links.push({ title: t('Docs'), href: '/docs' })
+      }
     }
+  }
+
+  // Experience Hub (Photo playground — unified image + video)
+  const photo = modules?.photo
+  if (photo && typeof photo === 'object' && photo.enabled) {
+    const requiresAuth = photo.requireAuth && !isAuthed
+    links.push({ title: t('Experience Hub'), href: '/photo', requiresAuth })
+  }
+
+  // Studio (image generation playground)
+  const studio = modules?.studio
+  if (studio && typeof studio === 'object' && studio.enabled) {
+    const requiresAuth = studio.requireAuth && !isAuthed
+    links.push({ title: t('Studio'), href: '/studio', requiresAuth })
   }
 
   // About

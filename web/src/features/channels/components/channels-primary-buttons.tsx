@@ -51,7 +51,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useChannelPermissions } from '../hooks/use-channel-permissions'
+import {
+  ADMIN_PERMISSION_ACTIONS,
+  ADMIN_PERMISSION_RESOURCES,
+  hasPermission,
+} from '@/lib/admin-permissions'
+import { useAuthStore } from '@/stores/auth-store'
+
 import {
   handleDeleteAllDisabled,
   handleFixAbilities,
@@ -77,13 +83,12 @@ export function ChannelsPrimaryButtons() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showConsistencyDialog, setShowConsistencyDialog] = useState(false)
   const [isRepairingConsistency, setIsRepairingConsistency] = useState(false)
-  const {
-    canCreateChannel,
-    canEditSensitive,
-    canOperate,
-    canTest,
-    canWrite,
-  } = useChannelPermissions()
+  const currentUser = useAuthStore((s) => s.auth.user)
+  const canEditSensitive = hasPermission(
+    currentUser,
+    ADMIN_PERMISSION_RESOURCES.CHANNEL,
+    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+  )
 
   const handleTagModeToggle = (checked: boolean) => {
     localStorage.setItem('enable-tag-mode', String(checked))
@@ -147,19 +152,19 @@ export function ChannelsPrimaryButtons() {
           <TooltipTrigger render={<span className='inline-flex' />}>
             <Button
               onClick={() => {
-                if (!canCreateChannel) return
+                if (!canEditSensitive) return
                 setCurrentRow(null)
                 setOpen('create-channel')
               }}
               size='sm'
-              disabled={!canCreateChannel}
+              disabled={!canEditSensitive}
             >
               <Plus className='h-4 w-4' />
               <span className='max-sm:hidden'>{t('Create Channel')}</span>
               <span className='sm:hidden'>{t('Create')}</span>
             </Button>
           </TooltipTrigger>
-          {!canCreateChannel && (
+          {!canEditSensitive && (
             <TooltipContent>
               {t('No permission to perform this action')}
             </TooltipContent>
@@ -202,90 +207,80 @@ export function ChannelsPrimaryButtons() {
 
             <DropdownMenuSeparator className='sm:hidden' />
 
-            {canTest && canOperate && (
-              <DropdownMenuItem
-                onClick={() => {
-                  handleTestAllChannels(queryClient)
-                }}
-              >
-                {t('Test All Channels')}
-                <DropdownMenuShortcut>
-                  <TestTube className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => {
+                handleTestAllChannels(queryClient)
+              }}
+            >
+              {t('Test All Channels')}
+              <DropdownMenuShortcut>
+                <TestTube className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-            {canOperate && (
-              <DropdownMenuItem
-                onClick={() => {
-                  handleUpdateAllBalances(queryClient)
-                }}
-              >
-                {t('Update All Balances')}
-                <DropdownMenuShortcut>
-                  <DollarSign className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => {
+                handleUpdateAllBalances(queryClient)
+              }}
+            >
+              {t('Update All Balances')}
+              <DropdownMenuShortcut>
+                <DollarSign className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-            {canOperate && <DropdownMenuSeparator />}
+            <DropdownMenuSeparator />
 
-            {canOperate && (
-              <DropdownMenuItem
-                onClick={() => upstream.detectAllUpdates()}
-                disabled={upstream.detectAllLoading}
-              >
-                {t('Detect All Upstream Updates')}
-                <DropdownMenuShortcut>
-                  <RefreshCw className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => upstream.detectAllUpdates()}
+              disabled={upstream.detectAllLoading}
+            >
+              {t('Detect All Upstream Updates')}
+              <DropdownMenuShortcut>
+                <RefreshCw className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-            {canWrite && (
-              <DropdownMenuItem
-                onClick={() => upstream.applyAllUpdates()}
-                disabled={upstream.applyAllLoading}
-              >
-                {t('Apply All Upstream Updates')}
-                <DropdownMenuShortcut>
-                  <ArrowUpFromLine className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onClick={() => upstream.applyAllUpdates()}
+              disabled={upstream.applyAllLoading}
+            >
+              {t('Apply All Upstream Updates')}
+              <DropdownMenuShortcut>
+                <ArrowUpFromLine className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-            {canOperate && <DropdownMenuSeparator />}
+            <DropdownMenuSeparator />
 
-            {canOperate && (
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setShowConsistencyDialog(true)
-                }}
-              >
-                {t('Repair Channel Consistency')}
-                <DropdownMenuShortcut>
-                  <Settings2 className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
+                setShowConsistencyDialog(true)
+              }}
+            >
+              {t('Repair Channel Consistency')}
+              <DropdownMenuShortcut>
+                <Settings2 className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-            {canEditSensitive && <DropdownMenuSeparator />}
+            <DropdownMenuSeparator />
 
-            {canEditSensitive && (
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setShowDeleteDialog(true)
-                }}
-                className='text-destructive focus:text-destructive'
-              >
-                {t('Delete All Disabled')}
-                <DropdownMenuShortcut>
-                  <Trash2 className='h-4 w-4' />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
+                if (!canEditSensitive) return
+                setShowDeleteDialog(true)
+              }}
+              disabled={!canEditSensitive}
+              className='text-destructive focus:text-destructive'
+            >
+              {t('Delete All Disabled')}
+              <DropdownMenuShortcut>
+                <Trash2 className='h-4 w-4' />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
