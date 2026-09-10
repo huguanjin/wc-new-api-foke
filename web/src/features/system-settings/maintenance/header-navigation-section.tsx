@@ -30,7 +30,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 
 import {
@@ -59,10 +58,11 @@ const headerNavSchema = z.object({
   rankingsRequireAuth: z.boolean(),
   photoEnabled: z.boolean(),
   photoRequireAuth: z.boolean(),
+  videoEnabled: z.boolean(),
+  videoRequireAuth: z.boolean(),
   studioEnabled: z.boolean(),
   studioRequireAuth: z.boolean(),
   docs: z.boolean(),
-  docsUrl: z.string(),
   about: z.boolean(),
 })
 
@@ -107,6 +107,14 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.photo?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.photo.requireAuth
       : Boolean(config.photo.requireAuth),
+  videoEnabled:
+    config.video?.enabled === undefined
+      ? HEADER_NAV_DEFAULT.video.enabled
+      : Boolean(config.video.enabled),
+  videoRequireAuth:
+    config.video?.requireAuth === undefined
+      ? HEADER_NAV_DEFAULT.video.requireAuth
+      : Boolean(config.video.requireAuth),
   studioEnabled:
     config.studio?.enabled === undefined
       ? HEADER_NAV_DEFAULT.studio.enabled
@@ -116,13 +124,7 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
       ? HEADER_NAV_DEFAULT.studio.requireAuth
       : Boolean(config.studio.requireAuth),
   docs:
-    typeof config.docs === 'object'
-      ? Boolean(config.docs.enabled)
-      : config.docs === undefined
-        ? Boolean(HEADER_NAV_DEFAULT.docs)
-        : Boolean(config.docs),
-  docsUrl:
-    typeof config.docs === 'object' ? (config.docs.url ?? '') : '',
+    config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
     config.about === undefined
       ? HEADER_NAV_DEFAULT.about
@@ -151,9 +153,7 @@ export function HeaderNavigationSection({
       ...config,
       home: values.home,
       console: values.console,
-      docs: values.docsUrl.trim()
-        ? { enabled: values.docs, url: values.docsUrl.trim() }
-        : values.docs,
+      docs: values.docs,
       about: values.about,
       pricing: {
         ...(config.pricing ?? HEADER_NAV_DEFAULT.pricing),
@@ -169,6 +169,11 @@ export function HeaderNavigationSection({
         ...(config.photo ?? HEADER_NAV_DEFAULT.photo),
         enabled: values.photoEnabled,
         requireAuth: values.photoRequireAuth,
+      },
+      video: {
+        ...(config.video ?? HEADER_NAV_DEFAULT.video),
+        enabled: values.videoEnabled,
+        requireAuth: values.videoRequireAuth,
       },
       studio: {
         ...(config.studio ?? HEADER_NAV_DEFAULT.studio),
@@ -193,34 +198,40 @@ export function HeaderNavigationSection({
   }
 
   const simpleModules: Array<{
-    key: 'home' | 'console' | 'about'
+    key: keyof HeaderNavFormValues
     title: string
     description: string
   }> = [
     {
       key: 'home',
       title: t('Home'),
-      description: t('Top nav "Home" entry, links to the landing page (/).'),
+      description: t('Landing page with system overview.'),
     },
     {
       key: 'console',
       title: t('Console'),
-      description: t('Top nav "Console" entry, links to the dashboard (/dashboard).'),
+      description: t('User dashboard and quota controls.'),
+    },
+    {
+      key: 'docs',
+      title: t('Docs'),
+      description: t('Documentation or external knowledge base.'),
     },
     {
       key: 'about',
       title: t('About'),
-      description: t('Top nav "About" entry, links to the about page (/about).'),
+      description: t('Static page describing the platform.'),
     },
   ]
 
   const accessModules: Array<{
-    enabledKey: 'pricingEnabled' | 'rankingsEnabled' | 'photoEnabled' | 'studioEnabled'
-    requireAuthKey: 'pricingRequireAuth' | 'rankingsRequireAuth' | 'photoRequireAuth' | 'studioRequireAuth'
+    enabledKey: keyof HeaderNavFormValues
+    requireAuthKey: keyof HeaderNavFormValues
     requireAuthDependsOn:
       | 'pricingEnabled'
       | 'rankingsEnabled'
       | 'photoEnabled'
+      | 'videoEnabled'
       | 'studioEnabled'
     title: string
     description: string
@@ -232,7 +243,7 @@ export function HeaderNavigationSection({
       requireAuthKey: 'pricingRequireAuth',
       requireAuthDependsOn: 'pricingEnabled',
       title: t('Model Square'),
-      description: t('Top nav "Model Square" entry, links to the pricing page (/pricing).'),
+      description: t('Public model catalog and pricing page.'),
       requireAuthTitle: t('Require login to view models'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the pricing directory.'
@@ -243,7 +254,7 @@ export function HeaderNavigationSection({
       requireAuthKey: 'rankingsRequireAuth',
       requireAuthDependsOn: 'rankingsEnabled',
       title: t('Rankings'),
-      description: t('Top nav "Rankings" entry, links to the rankings page (/rankings).'),
+      description: t('Public rankings page based on live usage data.'),
       requireAuthTitle: t('Require login to view rankings'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the rankings page.'
@@ -254,10 +265,25 @@ export function HeaderNavigationSection({
       requireAuthKey: 'photoRequireAuth',
       requireAuthDependsOn: 'photoEnabled',
       title: t('Experience Hub'),
-      description: t('Top nav "Experience Hub" entry, links to the image playground (/photo).'),
+      description: t(
+        'Image and video playground with Seedream and Seedance models.'
+      ),
       requireAuthTitle: t('Require login to view Experience Hub'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the Experience Hub.'
+      ),
+    },
+    {
+      enabledKey: 'videoEnabled',
+      requireAuthKey: 'videoRequireAuth',
+      requireAuthDependsOn: 'videoEnabled',
+      title: t('Quick Video'),
+      description: t(
+        'Frontend-only video generation playground with manual model input.'
+      ),
+      requireAuthTitle: t('Require login to view Quick Video'),
+      requireAuthDescription: t(
+        'Visitors must authenticate before accessing Quick Video.'
       ),
     },
     {
@@ -265,10 +291,12 @@ export function HeaderNavigationSection({
       requireAuthKey: 'studioRequireAuth',
       requireAuthDependsOn: 'studioEnabled',
       title: t('Studio'),
-      description: t('Top nav "Studio" entry, links to the studio playground (/studio).'),
+      description: t(
+        'Explore leading image and video models. Pick one to start creating.'
+      ),
       requireAuthTitle: t('Require login to view Studio'),
       requireAuthDescription: t(
-        'Visitors must authenticate before accessing Studio.'
+        'Visitors must authenticate before accessing the Studio.'
       ),
     },
   ]
@@ -312,59 +340,6 @@ export function HeaderNavigationSection({
                 )}
               />
             ))}
-
-            {/* Docs — with optional external URL */}
-            <SettingsControlGroup>
-              <FormField
-                control={form.control}
-                name='docs'
-                render={({ field }) => (
-                  <SettingsSwitchItem>
-                    <SettingsSwitchContent>
-                      <FormLabel className={formLabelClassName}>
-                        {t('Docs')}
-                      </FormLabel>
-                      <FormDescription className={formDescriptionClassName}>
-                        {t('Top nav "Docs" entry, links to documentation (/docs or external link).')}
-                      </FormDescription>
-                    </SettingsSwitchContent>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </SettingsSwitchItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='docsUrl'
-                render={({ field }) => (
-                  <SettingsControlChildren>
-                    <SettingsSwitchItem className='py-2'>
-                      <SettingsSwitchContent>
-                        <FormLabel className={formLabelClassName}>
-                          {t('External docs URL')}
-                        </FormLabel>
-                        <FormDescription className={formDescriptionClassName}>
-                          {t('If set, clicking "Docs" opens this URL in a new tab instead of /docs.')}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Input
-                          placeholder='https://docs.example.com'
-                          disabled={!form.watch('docs')}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </SettingsSwitchItem>
-                  </SettingsControlChildren>
-                )}
-              />
-            </SettingsControlGroup>
           </SettingsFormGrid>
 
           <SettingsFormGrid>

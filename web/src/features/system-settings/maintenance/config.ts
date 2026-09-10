@@ -21,21 +21,17 @@ export type HeaderNavAccessConfig = {
   requireAuth: boolean
 }
 
-export type HeaderNavDocsConfig = {
-  enabled: boolean
-  url?: string
-}
-
 export type HeaderNavModulesConfig = {
   home: boolean
   console: boolean
   pricing: HeaderNavAccessConfig
   rankings: HeaderNavAccessConfig
   photo: HeaderNavAccessConfig
+  video: HeaderNavAccessConfig
   studio: HeaderNavAccessConfig
-  docs: boolean | HeaderNavDocsConfig
+  docs: boolean
   about: boolean
-  [key: string]: boolean | HeaderNavAccessConfig | HeaderNavDocsConfig
+  [key: string]: boolean | HeaderNavAccessConfig
 }
 
 export type SidebarSectionConfig = {
@@ -57,6 +53,10 @@ export const HEADER_NAV_DEFAULT: HeaderNavModulesConfig = {
     requireAuth: false,
   },
   photo: {
+    enabled: true,
+    requireAuth: false,
+  },
+  video: {
     enabled: true,
     requireAuth: false,
   },
@@ -114,6 +114,7 @@ const cloneHeaderNavDefault = (): HeaderNavModulesConfig => ({
   pricing: { ...HEADER_NAV_DEFAULT.pricing },
   rankings: { ...HEADER_NAV_DEFAULT.rankings },
   photo: { ...HEADER_NAV_DEFAULT.photo },
+  video: { ...HEADER_NAV_DEFAULT.video },
   studio: { ...HEADER_NAV_DEFAULT.studio },
 })
 
@@ -164,6 +165,7 @@ export function parseHeaderNavModules(
       pricing: { ...base.pricing },
       rankings: { ...base.rankings },
       photo: { ...base.photo },
+      video: { ...base.video },
       studio: { ...base.studio },
     }
 
@@ -180,20 +182,12 @@ export function parseHeaderNavModules(
         result.photo = parseAccessModule(raw, base.photo)
         return
       }
-      if (key === 'studio') {
-        result.studio = parseAccessModule(raw, base.studio)
+      if (key === 'video') {
+        result.video = parseAccessModule(raw, base.video)
         return
       }
-      if (key === 'docs') {
-        if (raw && typeof raw === 'object') {
-          const record = raw as Record<string, unknown>
-          result.docs = {
-            enabled: toBoolean(record.enabled, true),
-            url: typeof record.url === 'string' ? record.url : undefined,
-          }
-        } else {
-          result.docs = toBoolean(raw, true)
-        }
+      if (key === 'studio') {
+        result.studio = parseAccessModule(raw, base.studio)
         return
       }
 

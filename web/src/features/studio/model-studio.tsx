@@ -23,6 +23,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft,
   Download,
+  ImageIcon,
   Loader2,
   Wand2,
 } from 'lucide-react'
@@ -43,6 +44,15 @@ import {
 } from './api'
 import { SIZE_OPTIONS, type StudioModel } from './models'
 
+// Template slots shown before the user generates anything. Replace the `src`
+// values later with your own template images.
+const TEMPLATE_SLOTS: { id: string; src?: string }[] = [
+  { id: 'tpl-1' },
+  { id: 'tpl-2' },
+  { id: 'tpl-3' },
+  { id: 'tpl-4' },
+]
+
 type ModelStudioProps = {
   model: StudioModel
 }
@@ -52,7 +62,7 @@ export function ModelStudio({ model }: ModelStudioProps) {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.auth.user)
 
-  const [prompt, setPrompt] = useState<string>(t(model.defaultPrompt))
+  const [prompt, setPrompt] = useState<string>(model.defaultPrompt)
   const [size, setSize] = useState<string>(SIZE_OPTIONS[0].value)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<StudioImage[]>([])
@@ -250,12 +260,23 @@ export function ModelStudio({ model }: ModelStudioProps) {
                     })}
                   </div>
                 ) : (
-                  <div className='overflow-hidden rounded-lg border'>
-                    <img
-                      src={model.cover}
-                      alt={model.label}
-                      className='h-auto w-full object-cover'
-                    />
+                  <div className='grid grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-4'>
+                    {TEMPLATE_SLOTS.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className='bg-muted/40 flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-dashed'
+                      >
+                        {slot.src ? (
+                          <img
+                            src={slot.src}
+                            alt={t('Template')}
+                            className='h-full w-full object-cover'
+                          />
+                        ) : (
+                          <ImageIcon className='text-muted-foreground/50 h-8 w-8' />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

@@ -16,14 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 export type VideoParams = {
   model: string
   prompt: string
   duration: string
-  aspectRatio: '16:9' | '9:16' | '1:1'
-  resolution: '720p' | '1080p'
+  aspectRatio: string
+  resolution: string
   referenceImageUrl?: string
+  referenceImageUrls?: string[]
+  referenceVideoUrl?: string
+  referenceVideoUrls?: string[]
+  referenceAudioUrl?: string
+  endpointTypes?: string[]
 }
 
 export type VideoTaskStatus =
@@ -44,14 +48,20 @@ export type VideoGenerationResult = {
 export type VideoHistoryItem = {
   id: string
   requestId: string
+  recordId?: string
+  deleteIds?: string[]
   status: VideoTaskStatus
   url?: string
   error?: string
   prompt: string
   model: string
   duration: string
-  aspectRatio: '16:9' | '9:16' | '1:1'
-  resolution: '720p' | '1080p'
+  aspectRatio: string
+  resolution: string
   referenceImageUrl?: string
+  referenceImageUrls?: string[]
+  referenceVideoUrl?: string
+  referenceVideoUrls?: string[]
+  referenceAudioUrl?: string
   createdAt: number
 }

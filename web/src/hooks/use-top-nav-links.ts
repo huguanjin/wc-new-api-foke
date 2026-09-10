@@ -86,19 +86,12 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
-  // Docs (supports external links — from modules.docs.url or fallback status.docs_link)
+  // Docs (supports external links)
   if (modules?.docs !== false) {
-    const docsEnabled =
-      typeof modules?.docs === 'object' ? modules.docs.enabled : true
-    const docsUrl =
-      (typeof modules?.docs === 'object' && modules.docs.url) || docsLink
-
-    if (docsEnabled !== false) {
-      if (docsUrl) {
-        links.push({ title: t('Docs'), href: docsUrl, external: true })
-      } else {
-        links.push({ title: t('Docs'), href: '/docs' })
-      }
+    if (docsLink) {
+      links.push({ title: t('Docs'), href: docsLink, external: true })
+    } else {
+      links.push({ title: t('Docs'), href: '/docs' })
     }
   }
 
