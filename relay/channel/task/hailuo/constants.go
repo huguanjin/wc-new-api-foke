@@ -6,6 +6,10 @@ const (
 
 var ModelList = []string{
 	"MiniMax-H3",
+	"MiniMax-H3-Max",
+	"MiniMax-H3-Max-Turbo",
+	"MiniMax-H3-Fast",
+	"MiniMax-H3-Fast-style1-768P",
 	"MiniMax-Hailuo-2.3",
 	"MiniMax-Hailuo-2.3-Fast",
 	"MiniMax-Hailuo-02",
@@ -53,6 +57,7 @@ const (
 )
 
 const (
+	Resolution480P  = "480P"
 	Resolution512P  = "512P"
 	Resolution720P  = "720P"
 	Resolution768P  = "768P"
@@ -74,3 +79,7 @@ const (
 )
 
 const ModelMiniMaxH3 = "MiniMax-H3"
+const ModelMiniMaxH3Max = "MiniMax-H3-Max"
+const ModelMiniMaxH3MaxTurbo = "MiniMax-H3-Max-Turbo"
+const ModelMiniMaxH3Fast = "MiniMax-H3-Fast"
+const ModelMiniMaxH3FastStyle1768P = "MiniMax-H3-Fast-style1-768P"

@@ -86,14 +86,20 @@ type ContentItem struct {
 }
 
 // VideoGenerationV2Request matches POST /v2/video_generation.
+type VideoGenerationV2Extra struct {
+	PromptExpansionMode string `json:"prompt_expansion_mode"`
+}
+
 type VideoGenerationV2Request struct {
-	Model         string        `json:"model"`
-	Content       []ContentItem `json:"content"`
-	Resolution    string        `json:"resolution"`
-	Duration      int           `json:"duration"`
-	Ratio         string        `json:"ratio,omitempty"`
-	CallbackURL   string        `json:"callback_url,omitempty"`
-	AigcWatermark *bool         `json:"aigc_watermark,omitempty"`
+	Model         string                  `json:"model"`
+	Style         string                  `json:"style,omitempty"`
+	Content       []ContentItem           `json:"content"`
+	Resolution    string                  `json:"resolution"`
+	Duration      int                     `json:"duration"`
+	Ratio         string                  `json:"ratio,omitempty"`
+	CallbackURL   string                  `json:"callback_url,omitempty"`
+	AigcWatermark *bool                   `json:"aigc_watermark,omitempty"`
+	Extra         *VideoGenerationV2Extra `json:"extra,omitempty"`
 }
 
 type VideoGenerationV2Response struct {
@@ -154,7 +160,12 @@ type VideoTaskV2Usage struct {
 }
 
 func IsVideoGenerationV2(model string) bool {
-	return strings.EqualFold(strings.TrimSpace(model), ModelMiniMaxH3)
+	m := strings.ToLower(strings.TrimSpace(model))
+	return m == strings.ToLower(ModelMiniMaxH3) ||
+		m == strings.ToLower(ModelMiniMaxH3Max) ||
+		m == strings.ToLower(ModelMiniMaxH3MaxTurbo) ||
+		m == strings.ToLower(ModelMiniMaxH3Fast) ||
+		m == strings.ToLower(ModelMiniMaxH3FastStyle1768P)
 }
 
 func GetModelConfig(model string) ModelConfig {
@@ -166,6 +177,46 @@ func GetModelConfig(model string) ModelConfig {
 			DefaultRatio:         DefaultRatioH3,
 			SupportedDurations:   []int{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
 			SupportedResolutions: []string{Resolution768P, Resolution2K},
+			HasPromptOptimizer:   false,
+			HasFastPretreatment:  false,
+		},
+		ModelMiniMaxH3Max: {
+			Name:                 ModelMiniMaxH3Max,
+			APIVersion:           "v2",
+			DefaultResolution:    DefaultResolutionH3,
+			DefaultRatio:         DefaultRatioH3,
+			SupportedDurations:   []int{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+			SupportedResolutions: []string{Resolution480P, Resolution768P},
+			HasPromptOptimizer:   false,
+			HasFastPretreatment:  false,
+		},
+		ModelMiniMaxH3MaxTurbo: {
+			Name:                 ModelMiniMaxH3MaxTurbo,
+			APIVersion:           "v2",
+			DefaultResolution:    DefaultResolutionH3,
+			DefaultRatio:         DefaultRatioH3,
+			SupportedDurations:   []int{5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+			SupportedResolutions: []string{Resolution480P, Resolution768P},
+			HasPromptOptimizer:   false,
+			HasFastPretreatment:  false,
+		},
+		ModelMiniMaxH3Fast: {
+			Name:                 ModelMiniMaxH3Fast,
+			APIVersion:           "v2",
+			DefaultResolution:    DefaultResolutionH3,
+			DefaultRatio:         DefaultRatioH3,
+			SupportedDurations:   []int{5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+			SupportedResolutions: []string{Resolution480P, Resolution768P},
+			HasPromptOptimizer:   false,
+			HasFastPretreatment:  false,
+		},
+		ModelMiniMaxH3FastStyle1768P: {
+			Name:                 ModelMiniMaxH3FastStyle1768P,
+			APIVersion:           "v2",
+			DefaultResolution:    Resolution768P,
+			DefaultRatio:         DefaultRatioH3,
+			SupportedDurations:   []int{5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+			SupportedResolutions: []string{Resolution768P},
 			HasPromptOptimizer:   false,
 			HasFastPretreatment:  false,
 		},

@@ -28,7 +28,6 @@ export type HeaderNavModulesConfig = {
   rankings: HeaderNavAccessConfig
   photo: HeaderNavAccessConfig
   video: HeaderNavAccessConfig
-  studio: HeaderNavAccessConfig
   docs: boolean
   about: boolean
   [key: string]: boolean | HeaderNavAccessConfig
@@ -57,10 +56,6 @@ export const HEADER_NAV_DEFAULT: HeaderNavModulesConfig = {
     requireAuth: false,
   },
   video: {
-    enabled: true,
-    requireAuth: false,
-  },
-  studio: {
     enabled: true,
     requireAuth: false,
   },
@@ -115,7 +110,6 @@ const cloneHeaderNavDefault = (): HeaderNavModulesConfig => ({
   rankings: { ...HEADER_NAV_DEFAULT.rankings },
   photo: { ...HEADER_NAV_DEFAULT.photo },
   video: { ...HEADER_NAV_DEFAULT.video },
-  studio: { ...HEADER_NAV_DEFAULT.studio },
 })
 
 const parseAccessModule = (
@@ -166,7 +160,6 @@ export function parseHeaderNavModules(
       rankings: { ...base.rankings },
       photo: { ...base.photo },
       video: { ...base.video },
-      studio: { ...base.studio },
     }
 
     Object.entries(parsed).forEach(([key, raw]) => {
@@ -184,10 +177,6 @@ export function parseHeaderNavModules(
       }
       if (key === 'video') {
         result.video = parseAccessModule(raw, base.video)
-        return
-      }
-      if (key === 'studio') {
-        result.studio = parseAccessModule(raw, base.studio)
         return
       }
 

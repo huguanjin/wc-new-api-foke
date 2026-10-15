@@ -16,13 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ArrowUp,
   ChevronDown,
   Loader2,
+  Paperclip,
   Plus,
   X,
 } from 'lucide-react'
@@ -98,6 +99,109 @@ const ASPECT_RATIOS: { value: string; label: string; hint?: string }[] = [
   { value: '3:4', label: '3:4' },
   { value: '21:9', label: '21:9' },
 ]
+
+async function uploadImageFile(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch('/api/upload/image', { method: 'POST', body: form })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { message?: string }).message ?? 'Upload failed')
+  }
+  const data = (await res.json()) as { data?: { url?: string } }
+  const url = data.data?.url
+  if (!url) throw new Error('No URL in response')
+  return url
+}
+
+interface ImageReferenceFieldProps {
+  field: ReferenceField
+  onChange: (url: string) => void
+  onRemove: () => void
+}
+
+function ImageReferenceField({ field, onChange, onRemove }: ImageReferenceFieldProps) {
+  const { t } = useTranslation()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('Please select an image file'))
+      return
+    }
+    setUploading(true)
+    try {
+      const url = await uploadImageFile(file)
+      onChange(url)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('Upload failed'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = Array.from(e.clipboardData.items)
+    const imageItem = items.find((item) => item.type.startsWith('image/'))
+    if (!imageItem) return
+    e.preventDefault()
+    const file = imageItem.getAsFile()
+    if (file) await handleFile(file)
+  }
+
+  return (
+    <div className='flex items-center gap-2'>
+      <div className='relative flex-1'>
+        <Input
+          type='url'
+          value={field.url}
+          onChange={(e) => onChange(e.target.value)}
+          onPaste={handlePaste}
+          placeholder={t('Paste image or enter URL')}
+          aria-label={t('Reference image')}
+          className='h-9 pr-9'
+          disabled={uploading}
+        />
+        {uploading && (
+          <Loader2 className='absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground' />
+        )}
+      </div>
+      <input
+        ref={fileInputRef}
+        type='file'
+        accept='image/*'
+        className='hidden'
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void handleFile(file)
+          e.target.value = ''
+        }}
+      />
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon'
+        className='size-8 shrink-0'
+        aria-label={t('Upload image')}
+        disabled={uploading}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <Paperclip className='size-4' />
+      </Button>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon'
+        className='size-8 shrink-0'
+        aria-label={t('Remove')}
+        onClick={onRemove}
+      >
+        <X className='size-4' />
+      </Button>
+    </div>
+  )
+}
 
 export function VideoPanel() {
   const { t } = useTranslation()
@@ -237,7 +341,7 @@ export function VideoPanel() {
     )
     const referenceAudioUrl = params.referenceAudioUrl?.trim()
     if (imageFields.some((field) => !field.url.trim())) {
-      toast.error(t('Please enter a reference image URL'))
+      toast.error(t('Please enter a reference image URL or upload an image'))
       return
     }
     if (videoFields.some((field) => !field.url.trim())) {
@@ -466,37 +570,22 @@ export function VideoPanel() {
           {(showImageRef || showVideoRef || showAudioRef) ? (
             <div className='space-y-2'>
               {imageFields.map((field) => (
-                <div key={field.id} className='flex items-center gap-2'>
-                  <Input
-                    type='url'
-                    value={field.url}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setImageFields((prev) =>
-                        prev.map((item) =>
-                          item.id === field.id ? { ...item, url: value } : item
-                        )
+                <ImageReferenceField
+                  key={field.id}
+                  field={field}
+                  onChange={(url) =>
+                    setImageFields((prev) =>
+                      prev.map((item) =>
+                        item.id === field.id ? { ...item, url } : item
                       )
-                    }}
-                    placeholder='https://example.com/image.jpg'
-                    aria-label={t('Reference image')}
-                    className='h-9'
-                  />
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    className='size-8 shrink-0'
-                    aria-label={t('Remove')}
-                    onClick={() =>
-                      setImageFields((prev) =>
-                        prev.filter((item) => item.id !== field.id)
-                      )
-                    }
-                  >
-                    <X className='size-4' />
-                  </Button>
-                </div>
+                    )
+                  }
+                  onRemove={() =>
+                    setImageFields((prev) =>
+                      prev.filter((item) => item.id !== field.id)
+                    )
+                  }
+                />
               ))}
               {videoFields.map((field) => (
                 <div key={field.id} className='flex items-center gap-2'>

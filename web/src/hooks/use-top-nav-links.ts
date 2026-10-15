@@ -102,13 +102,6 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Experience Hub'), href: '/photo', requiresAuth })
   }
 
-  // Studio (image generation playground)
-  const studio = modules?.studio
-  if (studio && typeof studio === 'object' && studio.enabled) {
-    const requiresAuth = studio.requireAuth && !isAuthed
-    links.push({ title: t('Studio'), href: '/studio', requiresAuth })
-  }
-
   // About
   if (modules?.about !== false) {
     links.push({ title: t('About'), href: '/about' })

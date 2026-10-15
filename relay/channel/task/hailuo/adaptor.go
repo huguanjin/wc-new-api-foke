@@ -51,9 +51,9 @@ func (a *TaskAdaptor) resolveBaseURL(info *relaycommon.RelayInfo) string {
 
 func resolveMiniMaxVideoBaseURL(baseURL, model string) string {
 	base := strings.TrimSpace(baseURL)
-	// MiniMax-H3 V2 docs: https://api.minimaxi.com — legacy MiniMax chat default is api.minimax.chat.
-	if IsVideoGenerationV2(model) && (base == "" || base == "https://api.minimax.chat") {
-		return "https://api.minimaxi.com"
+	// MiniMax-H3 V2 docs: https://api.minimax.io — legacy MiniMax chat default is api.minimax.chat.
+	if IsVideoGenerationV2(model) && (base == "" || base == "https://api.minimax.chat" || base == "https://api.minimaxi.com") {
+		return "https://api.minimax.io"
 	}
 	if base != "" {
 		return base
@@ -232,6 +232,7 @@ func (a *TaskAdaptor) doV2Response(c *gin.Context, statusCode int, responseBody 
 		return
 	}
 	if upstreamTaskID == "" {
+		common.SysError(fmt.Sprintf("hailuo v2 task_id is empty, model=%s upstream_body=%s", info.UpstreamModelName, string(responseBody)))
 		taskErr = service.TaskErrorWrapper(
 			fmt.Errorf("task_id is empty (upstream body: %s)", responseBody),
 			"invalid_response",
@@ -411,6 +412,21 @@ func (a *TaskAdaptor) convertToV2RequestPayload(req *relaycommon.TaskSubmitReq, 
 	}
 	if !hasMedia && strings.EqualFold(videoRequest.Ratio, "adaptive") {
 		videoRequest.Ratio = DefaultRatioH3
+	}
+
+	// H3-Max: disable prompt expansion by default (original logic preserved)
+	if strings.EqualFold(strings.TrimSpace(info.UpstreamModelName), ModelMiniMaxH3Max) {
+		if videoRequest.Extra == nil {
+			videoRequest.Extra = &VideoGenerationV2Extra{PromptExpansionMode: "disabled"}
+		}
+	}
+
+	// H3-Fast and H3-Fast-style1-768P: inject style=style1 and map model name to "MiniMax-H3-Fast"
+	upstreamModel := strings.TrimSpace(info.UpstreamModelName)
+	if strings.EqualFold(upstreamModel, ModelMiniMaxH3Fast) ||
+		strings.EqualFold(upstreamModel, ModelMiniMaxH3FastStyle1768P) {
+		videoRequest.Style = "style1"
+		videoRequest.Model = ModelMiniMaxH3Fast
 	}
 
 	return videoRequest, nil

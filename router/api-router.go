@@ -49,6 +49,8 @@ func SetApiRouter(router *gin.Engine) {
 			customVideoRoute.GET("/generations/:task_id", controller.GetCustomVideoGeneration)
 		}
 
+		apiRouter.POST("/upload/image", middleware.UserAuth(), controller.UploadImage)
+
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)
 		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
 		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.ResetPassword)
